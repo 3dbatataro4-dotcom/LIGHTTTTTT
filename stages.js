@@ -1124,13 +1124,10 @@ Object.assign(window.game, {
         // 🌟 徹底解決時間定格 Bug：確保型別正確
         this.hour = parseInt(this.hour) || 0;
         this.day = parseInt(this.day) || 1;
-        let timeCost = this.mission ? Math.ceil(this.mission.time) : 0;
         
-        this.hour += timeCost;
-        if (this.hour >= 24) {
-            this.day += Math.floor(this.hour / 24);
-            this.hour = this.hour % 24;
-        }
+        // 🌟 修正：不再重複加上委託預估時間，改為只增加 1 小時的返航/停泊時間
+        // 這樣總時間 = 遊玩回合數 + 1，會更符合委託單上的預估 (例如 6 小時)
+        this.addTime(1);
 
         if(this.hour >= 22 || this.hour < 6) { this.fatigue += 20; }
 
@@ -1396,15 +1393,15 @@ Object.assign(window.game, {
             // 🌟 優化：Flex 佈局增加 wrap 防止擠壓，增大觸控區域
             html += `
             <div class="tech-card" style="padding:12px; margin-bottom:10px; border-color:#444;">
-                <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
-                    <div style="display:flex; align-items:center; flex:1 1 60%;">
-                        <span style="font-size:1.8rem; margin-right:10px; background:rgba(0,0,0,0.3); border-radius:8px; width:45px; height:45px; display:flex; align-items:center; justify-content:center;">${item.icon}</span>
-                        <div style="min-width:0;">
+                <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px;">
+                    <div style="display:flex; align-items:center; flex:1 1 200px; max-width:100%;">
+                        <span style="font-size:1.8rem; margin-right:10px; background:rgba(0,0,0,0.3); border-radius:8px; width:45px; height:45px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">${item.icon}</span>
+                        <div style="min-width:0; flex:1;">
                             <div style="color:var(--sonar); font-weight:bold; font-size:1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name}</div>
                             <div style="font-size:0.8rem; color:#aaa;">單價: $${unitPrice}</div>
                         </div>
                     </div>
-                    <div style="text-align:right; flex:0 0 auto;">
+                    <div style="text-align:right; flex:0 0 auto; margin-left:auto;">
                         <div style="color:var(--gold); font-weight:bold; font-size:1.1rem;">$<span id="subtotal-${id}">0</span></div>
                     </div>
                 </div>
