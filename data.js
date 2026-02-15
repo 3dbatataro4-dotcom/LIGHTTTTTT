@@ -303,8 +303,13 @@ const ITEM_DB = {
                     fishPool = ['fish_moray', 'fish_moray', 'fish_lionfish', 'fish_lionfish', 'fish_octopus'];
                 }
             } else {
-                // 深淵或其他 (暫時)
-                fishPool = ['fish_kelp'];
+                // 🌟 深淵區域 (Abyss)
+                // 15% 機率變異
+                if (Math.random() < 0.15) {
+                    fishPool = ['fish_mutant_angler', 'fish_mutant_glass'];
+                } else {
+                    fishPool = ['fish_angler', 'fish_angler', 'fish_glass_scale', 'fish_glass_scale', 'fish_kelp'];
+                }
             }
 
             let catchId = fishPool[Math.floor(Math.random() * fishPool.length)];
@@ -424,6 +429,27 @@ const ITEM_DB = {
         id: 'fish_mutant_octopus', name: '非歐何畸變幼體', icon: '<img src="https://file.garden/aWe99vhwaGcNwkok/%E6%B7%B1%E6%B5%B7%E8%BF%B7%E8%88%AA/%E9%81%93%E5%85%B7/item_6.png" style="width:1.2em;height:1.2em;vertical-align:middle;">',
         desc: '【變異】牠的觸手數量和角度不符合常理的幾何學，看久了會讓人頭暈目眩。', type: 'fish', value: 650, habitat: '暗礁',
         effect: (game) => { return false; } 
+    },
+    // 🌟 新增：深淵區域漁獲
+    'fish_angler': {
+        id: 'fish_angler', name: '誘光鮟鱇', icon: '<img src="https://file.garden/aWe99vhwaGcNwkok/%E6%B7%B1%E6%B5%B7%E8%BF%B7%E8%88%AA/%E9%81%93%E5%85%B7/item_6%20(1).png" style="width:1.2em;height:1.2em;vertical-align:middle;">',
+        desc: '在漆黑深海中用幽藍的光芒吸引獵物，體型龐大。', type: 'fish', value: 350, habitat: '深淵',
+        effect: (game) => { return false; }
+    },
+    'fish_mutant_angler': {
+        id: 'fish_mutant_angler', name: '亡者提燈', icon: '<img src="https://file.garden/aWe99vhwaGcNwkok/%E6%B7%B1%E6%B5%B7%E8%BF%B7%E8%88%AA/%E9%81%93%E5%85%B7/item_6%20(1).png" style="width:1.2em;height:1.2em;vertical-align:middle;">',
+        desc: '【變異】牠頭頂的發光體裡，似乎困著無數微小的人影在痛苦掙扎。', type: 'fish', value: 800, habitat: '深淵',
+        effect: (game) => { return false; }
+    },
+    'fish_glass_scale': {
+        id: 'fish_glass_scale', name: '琉璃鱗毒魚', icon: '<img src="https://file.garden/aWe99vhwaGcNwkok/%E6%B7%B1%E6%B5%B7%E8%BF%B7%E8%88%AA/%E9%81%93%E5%85%B7/item_6%20(2).png" style="width:1.2em;height:1.2em;vertical-align:middle;">',
+        desc: '深海的高壓讓牠的鱗片像玻璃一樣透明且堅硬。', type: 'fish', value: 450, habitat: '深淵',
+        effect: (game) => { return false; }
+    },
+    'fish_mutant_glass': {
+        id: 'fish_mutant_glass', name: '溶血毒牙', icon: '<img src="https://file.garden/aWe99vhwaGcNwkok/%E6%B7%B1%E6%B5%B7%E8%BF%B7%E8%88%AA/%E9%81%93%E5%85%B7/item_5%20(3).png" style="width:1.2em;height:1.2em;vertical-align:middle;">',
+        desc: '【變異】釣上來時牠吐出的唾液直接融穿了甲板，血液是螢光綠色的。', type: 'fish', value: 950, habitat: '深淵',
+        effect: (game) => { return false; }
     }
 };
 
