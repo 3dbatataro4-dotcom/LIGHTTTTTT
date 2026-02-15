@@ -1480,5 +1480,56 @@ Object.assign(window.game, {
         this.closeModal();
         this.log(`交易完成，獲得 $${totalGain}。`, "color:var(--gold)");
         this.openTab('port');
+    },
+
+    // --- 💤 港口小憩系統 ---
+    openNapUI: function() {
+        this.modal("none", "角落小憩", `
+            <div style="text-align:center;">
+                <div style="font-size:3rem; margin-bottom:10px;">💤</div>
+                <div style="margin-bottom:10px; color:#aaa;">要在充滿魚腥味的角落睡多久？<br>(回復疲勞 / <span style="color:#b39ddb">大幅降低 SAN</span>)</div>
+                
+                <div style="display:flex; gap:10px; align-items:center; justify-content:center; margin:20px 0;">
+                    <input type="range" id="nap-slider" min="1" max="8" value="1" style="width:60%;" oninput="game.updateNapPreview(this.value)">
+                    <div style="font-size:1.2rem; font-weight:bold; color:var(--sonar); width:40px;"><span id="nap-hours">1</span>h</div>
+                </div>
+                <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:5px; font-size:0.9rem;">
+                    <div>預計回復疲勞: <span style="color:var(--sonar)" id="nap-fatigue">-5</span>%</div>
+                    <div>預計扣除 SAN: <span style="color:#b39ddb" id="nap-san">-5</span> (全體)</div>
+                </div>
+            </div>
+        `);
+        
+        setTimeout(() => {
+            let btnContainer = document.getElementById('modal-btn-container');
+            if(btnContainer) {
+                btnContainer.innerHTML = `
+                    <button class="tech-btn" style="width:auto; padding:10px 20px; border-color:var(--sonar); color:var(--sonar);" onclick="game.confirmNap()">開始休息</button>
+                    <button class="tech-btn" style="width:auto; padding:10px 20px; border-color:#555; color:#aaa;" onclick="game.closeModal()">取消</button>
+                `;
+            }
+        }, 10);
+    },
+
+    updateNapPreview: function(val) {
+        document.getElementById('nap-hours').innerText = val;
+        document.getElementById('nap-fatigue').innerText = '-' + (val * 5);
+        document.getElementById('nap-san').innerText = '-' + (val * 5);
+    },
+
+    confirmNap: function() {
+        const slider = document.getElementById('nap-slider');
+        const hours = parseInt(slider.value);
+        this.closeModal();
+        
+        this.addTime(hours);
+        this.fatigue = Math.max(0, this.fatigue - (hours * 5));
+        
+        // 露宿街頭懲罰：全體扣 SAN
+        this.damageAllSan(hours * 5, "露宿街頭");
+        
+        this.log(`💤 在港口角落睡了 ${hours} 小時... 身體好痛，精神更差了。`, "color:#aaa");
+        this.updateUI();
+        this.openTab('port');
     }
 });
