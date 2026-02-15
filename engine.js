@@ -438,13 +438,13 @@ Object.assign(window.game, {
             // 🌟 檢測是否為移動端 (若為移動端則禁用藍圖拖曳，避免與頁面捲動衝突)
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
 
-            // 🌟 輔助：生成帶有長按偵測的事件字串
+            // 🌟 輔助：生成帶有長按偵測的事件字串 (傳入 event 以區分觸控與滑鼠)
             const bpEvents = (type, cost) => `
                 oncontextmenu="return false;"
-                onmousedown="game.handleBpPress(this, '${type}', ${cost})"
+                onmousedown="game.handleBpPress(this, '${type}', ${cost}, event)"
                 onmouseup="game.handleBpRelease(this)"
                 onmouseleave="game.handleBpRelease(this)"
-                ontouchstart="game.handleBpPress(this, '${type}', ${cost}')"
+                ontouchstart="game.handleBpPress(this, '${type}', ${cost}, event)"
                 ontouchcancel="game.handleBpRelease(this)"
                 ontouchend="game.handleBpRelease(this)"
                 onclick="if(!game.longPressTriggered) game.confirmUpgrade('${type}', ${cost})"`;
@@ -1501,7 +1501,15 @@ Object.assign(window.game, {
     },
 
     // --- 🌟 新增：藍圖長按與詳情顯示 ---
-    handleBpPress: function(btn, type, cost) {
+    handleBpPress: function(btn, type, cost, e) {
+        // 🌟 防止移動端 touch 事件後觸發 mousedown 導致長按狀態被重置
+        if (e && e.type === 'mousedown' && this.lastTouchTime && (Date.now() - this.lastTouchTime < 1000)) {
+            return;
+        }
+        if (e && e.type === 'touchstart') {
+            this.lastTouchTime = Date.now();
+        }
+
         if(this.pressTimer) clearTimeout(this.pressTimer);
         this.longPressTriggered = false;
         this.pressTimer = setTimeout(() => {
