@@ -1383,7 +1383,8 @@ Object.assign(window.game, {
         });
 
         // 🌟 優化：使用 vh 單位適配不同螢幕高度，並調整 padding
-        let html = `<div style="max-height:50vh; overflow-y:auto; padding-right:2px;">`;
+        // 🌟 修正：加入 width:100%, box-sizing:border-box 與 overflow-x:hidden 防止手機版面撐開
+        let html = `<div style="width:100%; max-height:50vh; overflow-y:auto; overflow-x:hidden; padding:2px; box-sizing:border-box;">`;
         
         Object.keys(fishCounts).forEach(id => {
             let item = ITEM_DB[id];
@@ -1392,22 +1393,22 @@ Object.assign(window.game, {
             
             // 🌟 優化：Flex 佈局增加 wrap 防止擠壓，增大觸控區域
             html += `
-            <div class="tech-card" style="padding:12px; margin-bottom:10px; border-color:#444;">
+            <div class="tech-card" style="padding:10px; margin-bottom:8px; border-color:#444; width:100%; box-sizing:border-box;">
                 <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px;">
-                    <div style="display:flex; align-items:center; flex:1 1 200px; max-width:100%;">
-                        <span style="font-size:1.8rem; margin-right:10px; background:rgba(0,0,0,0.3); border-radius:8px; width:45px; height:45px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">${item.icon}</span>
+                    <div style="display:flex; align-items:center; flex:1 1 auto; min-width:120px; max-width:100%;">
+                        <span style="font-size:1.6rem; margin-right:8px; background:rgba(0,0,0,0.3); border-radius:8px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">${item.icon}</span>
                         <div style="min-width:0; flex:1;">
-                            <div style="color:var(--sonar); font-weight:bold; font-size:1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name}</div>
+                            <div style="color:var(--sonar); font-weight:bold; font-size:0.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name}</div>
                             <div style="font-size:0.8rem; color:#aaa;">單價: $${unitPrice}</div>
                         </div>
                     </div>
                     <div style="text-align:right; flex:0 0 auto; margin-left:auto;">
-                        <div style="color:var(--gold); font-weight:bold; font-size:1.1rem;">$<span id="subtotal-${id}">0</span></div>
+                        <div style="color:var(--gold); font-weight:bold; font-size:1rem;">$<span id="subtotal-${id}">0</span></div>
                     </div>
                 </div>
-                <div style="display:flex; align-items:center; gap:10px; margin-top:12px; background:rgba(255,255,255,0.05); padding:8px; border-radius:6px;">
-                    <input type="range" class="fish-slider" data-id="${id}" data-price="${unitPrice}" min="0" max="${count}" value="0" style="flex:1; height:30px;" oninput="game.updateSellTotal()">
-                    <div style="min-width:50px; text-align:right; color:#fff; font-family:monospace; font-size:1rem;"><span id="qty-${id}">0</span>/${count}</div>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:10px; background:rgba(255,255,255,0.05); padding:6px 8px; border-radius:6px;">
+                    <input type="range" class="fish-slider" data-id="${id}" data-price="${unitPrice}" min="0" max="${count}" value="0" style="flex:1; height:30px; min-width:50px;" oninput="game.updateSellTotal()">
+                    <div style="min-width:40px; text-align:right; color:#fff; font-family:monospace; font-size:0.9rem;"><span id="qty-${id}">0</span>/${count}</div>
                 </div>
             </div>`;
         });
