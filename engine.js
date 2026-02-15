@@ -45,10 +45,13 @@ Object.assign(window.game, {
 
     // --- 🌟 新增：前置劇情 (彼得的警告) ---
     showPrologue: function() {
-        let storyMsg = `「聽好了。第七星區已經完蛋了。」<br><br>
-        彼得焦躁地摸著腰間的聖水瓶，壓低了聲音。<br><br>
-        「深淵底下的『舊日支配者』正在甦醒。最多十天... 只要十天，克拉肯就會把這片廢棄港口連同我們一起吞噬。<br><br>
-        去修好你們的 S.S. NOEMA 號，去酒館找些不要命的傢伙，想辦法搞到<span style="color:var(--alert)">【深淵魚雷】</span>... 這是我們唯一的活路。」`;
+        let storyMsg = `
+            <div style="text-align:left; font-size:1rem; line-height:1.6; color:#cfd8dc; padding:5px;">
+                <p style="margin-top:0;">「聽好了。第七星區已經完蛋了。」</p>
+                <p>彼得焦躁地摸著腰間的聖水瓶，壓低了聲音。</p>
+                <p>「深淵底下的『舊日支配者』正在甦醒。最多十天... 只要十天，克拉肯就會把這片廢棄港口連同我們一起吞噬。</p>
+                <p style="margin-bottom:0;">去修好你們的 S.S. NOEMA 號，去酒館找些不要命的傢伙，想辦法搞到<span style="color:var(--alert)">【深淵魚雷】</span>... 這是我們唯一的活路。」</p>
+            </div>`;
 
         this.modal("peter", "彼得村長", storyMsg);
         
@@ -64,19 +67,19 @@ Object.assign(window.game, {
     // --- 🌟 新增：系統教學視窗 ---
     showTutorial: function() {
         let tutorialHTML = `
-            <div style="text-align:left; font-size:0.9rem; line-height:1.6; color:#cfd8dc; max-height: 40vh; overflow-y: auto; padding-right: 10px;">
+            <div style="text-align:left; font-size:0.95rem; line-height:1.6; color:#cfd8dc; max-height: 50vh; overflow-y: auto; padding: 0 5px;">
                 <h3 style="color:var(--gold); border-bottom:1px dashed #555; padding-bottom:5px; margin-top:0;">⏳ 殘酷的十日死線</h3>
-                第 10 天午夜，克拉肯將全面甦醒。如果你在那之前沒有進入【深淵中心】擊殺牠，第七星區將迎來毀滅 (GAME OVER)。<br><br>
+                <p style="margin: 5px 0 15px 0;">第 10 天午夜，克拉肯將全面甦醒。如果你在那之前沒有進入【深淵中心】擊殺牠，第七星區將迎來毀滅 (GAME OVER)。</p>
                 
                 <h3 style="color:var(--sonar); border-bottom:1px dashed #555; padding-bottom:5px;">⚙️ 生存法則</h3>
-                <ul style="padding-left:20px; margin-bottom:0;">
+                <ul style="padding-left:20px; margin-bottom:15px;">
                     <li style="margin-bottom:8px;"><b>航行與 AP</b>：出航後每回合有行動點數，請謹慎分配給船員執行推進或技能。</li>
                     <li style="margin-bottom:8px;"><b>理智 (SAN)</b>：深海的壓迫會讓船員持續掉 SAN，歸零將獲得永久【心理創傷】。請帶上會唱歌或心理疏導的船員！</li>
                     <li style="margin-bottom:8px;"><b>疲勞極限</b>：疲勞達到 100% 畫面將產生暈眩，並引發極度嚴重的幻覺與理智崩潰。記得回旅館休息。</li>
                 </ul>
 
                 <h3 style="color:var(--alert); border-bottom:1px dashed #555; padding-bottom:5px;">⚔️ 最終決戰準備</h3>
-                船隻預設無法對抗巨獸。你必須在村長家擴建船隻，並存夠 $2500 購買<b style="color:var(--alert)">「深淵魚雷」</b>，否則面對克拉肯只有死路一條。
+                <p style="margin: 5px 0 0 0;">船隻預設無法對抗巨獸。你必須在村長家擴建船隻，並存夠 $2500 購買<b style="color:var(--alert)">「深淵魚雷」</b>，否則面對克拉肯只有死路一條。</p>
             </div>
         `;
         
@@ -437,10 +440,12 @@ Object.assign(window.game, {
 
             // 🌟 輔助：生成帶有長按偵測的事件字串
             const bpEvents = (type, cost) => `
+                oncontextmenu="return false;"
                 onmousedown="game.handleBpPress(this, '${type}', ${cost})"
                 onmouseup="game.handleBpRelease(this)"
                 onmouseleave="game.handleBpRelease(this)"
                 ontouchstart="game.handleBpPress(this, '${type}', ${cost}')"
+                ontouchcancel="game.handleBpRelease(this)"
                 ontouchend="game.handleBpRelease(this)"
                 onclick="if(!game.longPressTriggered) game.confirmUpgrade('${type}', ${cost})"`;
 
@@ -474,7 +479,7 @@ Object.assign(window.game, {
                             </svg>
 
                             <style>
-                                .bp-node { position:absolute; transform:translate(-50%, -50%); cursor:pointer; z-index:10; display:flex; flex-direction:column; align-items:center; }
+                                .bp-node { position:absolute; transform:translate(-50%, -50%); cursor:pointer; z-index:10; display:flex; flex-direction:column; align-items:center; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
                                 .bp-dot { width:12px; height:12px; background:var(--sonar); border-radius:50%; box-shadow:0 0 8px var(--sonar); animation:blink 2s infinite alternate; transition:0.3s; border: 2px solid #000; }
                                 .bp-label { margin-top:6px; color:#cfd8dc; font-size:0.75rem; background:rgba(0,10,15,0.85); border:1px solid var(--sonar); padding:4px 8px; border-radius:4px; white-space:nowrap; transition:0.3s; pointer-events:none; }
                                 .bp-node:hover .bp-dot { background:var(--gold); box-shadow:0 0 15px var(--gold); transform:scale(1.3); }
