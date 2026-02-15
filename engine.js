@@ -1508,6 +1508,7 @@ Object.assign(window.game, {
         }
         if (e && e.type === 'touchstart') {
             this.lastTouchTime = Date.now();
+            e.stopPropagation(); // 🌟 阻止事件冒泡，防止觸發地圖拖曳導致長按失效
         }
 
         if(this.pressTimer) clearTimeout(this.pressTimer);
