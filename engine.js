@@ -572,6 +572,12 @@ Object.assign(window.game, {
                 <div class="card-body" style="color:#aaa;">尋找買家出售背包裡的漁獲。運氣好的話，或許能遇到出手闊綽的神秘人物...</div>
                 <button class="tech-btn" style="border-color:var(--gold); color:var(--gold); margin-top:10px; width:100%;" onclick="game.findFishBuyer()">尋找買家出售</button>
             </div>
+            
+            <h3 style="color:#aaa; margin-top:20px;">💤 港口角落</h3>
+            <div class="tech-card" style="border-color:#555;">
+                <div class="card-body" style="color:#aaa;">身無分文時，只能在充滿魚腥味的角落勉強瞇一下。雖然能恢復體力，但精神會變得更糟...</div>
+                <button class="tech-btn" style="border-color:#aaa; color:#aaa; margin-top:10px; width:100%;" onclick="game.openNapUI()">在角落小憩 (免費)</button>
+            </div>
             `;
         } else if (tabId === 'warehouse') {
             // 🌟 勝利後專屬按鈕
