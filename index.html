@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>深淵歸途</title>
+    <link rel="icon" href="https://file.garden/aWe99vhwaGcNwkok/%E6%B7%B1%E6%B5%B7%E8%BF%B7%E8%88%AA/item_1.png">
+    <link rel="apple-touch-icon" href="https://file.garden/aWe99vhwaGcNwkok/%E6%B7%B1%E6%B5%B7%E8%BF%B7%E8%88%AA/item_1.png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="title-layer" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:9999; background:var(--bg-deep); display:flex; flex-direction:column; justify-content:center; align-items:center; background-image: radial-gradient(circle, rgba(0, 176, 255, 0.1) 0%, rgba(0,0,0,1) 80%);">
+        <h1 style="color:var(--sonar); font-size:4rem; text-shadow:0 0 20px var(--sonar); margin-bottom:10px; letter-spacing:5px; text-align:center;">深淵歸途</h1>
+        <div style="color:#aaa; font-size:1.2rem; letter-spacing:8px; margin-bottom:50px;">S.S. NOEMA OS v12.0</div>
+        <button class="tech-btn" style="width:auto; padding:15px 40px; font-size:1.5rem; animation: blink 2s infinite;" onclick="game.enterGame()">INITIATE SYSTEM</button>
+        <button class="tech-btn" style="width:auto; padding:10px 30px; font-size:1.2rem; margin-top:15px; border-color:#555; color:#aaa;" onclick="game.loadGame()">LOAD SYSTEM</button>
+        <button class="tech-btn" style="width:auto; padding:10px 30px; font-size:1.2rem; margin-top:15px; border-color:var(--gold); color:var(--gold);" onclick="game.debugVictoryMode()">☀ DEBUG MODE (POST-VICTORY)</button>
+    </div>
+
+    <div class="top-hud" id="main-hud" style="display:none;">
+        <div class="status-grid">
+            <div class="stat-block"><div class="stat-label">CREDITS</div><div class="stat-val" style="color:var(--gold)" id="uiMoney">500</div></div>
+            <div class="stat-block"><div class="stat-label">FUEL</div><div class="stat-val"><span id="uiFuel">100</span><span style="font-size:0.8rem;color:#555">/</span><span id="maxFuel" style="font-size:0.8rem;color:#555">100</span></div></div>
+            <div class="stat-block"><div class="stat-label">FOOD</div><div class="stat-val"><span id="uiFood">100</span><span style="font-size:0.8rem;color:#555">/</span><span id="maxFood" style="font-size:0.8rem;color:#555">100</span></div></div>
+            <div class="stat-block"><div class="stat-label">HULL</div><div class="stat-val" id="uiHp">100</div></div>
+            <div class="stat-block"><div class="stat-label">FATIGUE</div><div class="stat-val" id="uiFatigue">0%</div></div>
+            <div class="stat-block"><div class="stat-label">CREW</div><div class="stat-val"><span id="uiCrew">3</span><span style="font-size:0.8rem;color:#555">/</span><span id="maxCrew" style="font-size:0.8rem;color:#555">3</span></div></div>
+        </div>
+        <div class="time-panel">
+            <div class="day-text" id="uiDay">DAY 1 / 10</div>
+            <div class="time-text" id="uiTime">08:00</div>
+            <div class="weather-text" id="uiWeather">☀ 晴朗</div>
+        </div>
+    </div>
+
+    <div class="viewport" id="port-layer" style="display:none; flex-direction:column;">
+        
+        <div style="display:flex; background:rgba(0,0,0,0.8); border-bottom:1px solid #333;">
+            <button class="nav-btn active tab-main-btn" id="tab-town" onclick="game.switchMode('town')">🗺️ 小鎮地圖 (TOWN)</button>
+            <button class="nav-btn tab-main-btn" id="tab-ship" onclick="game.switchMode('ship')">⚓ 船艙內部 (SHIP)</button>
+        </div>
+
+        <div id="port-body" style="flex:1; display:flex; overflow:hidden;">
+            <div class="side-nav" id="port-menu-area">
+            </div>
+            
+            <div class="content-area" id="main-content">
+            </div>
+        </div>
+    </div>
+
+    <div id="sea-layer" style="display:none;">
+        <div class="sonar-display">
+            <div class="ocean-waves"></div>
+            
+            <div class="ship-avatar">🚢</div>
+            
+            <div class="sonar-sweep" id="radar-sweep"></div>
+            
+            <div class="target-info" id="target-info-box" style="background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); position:relative; z-index:10;">
+                <div style="color:#555; letter-spacing:2px; font-size:0.9rem;" id="target-label">DISTANCE TO TARGET</div>
+                <div class="dist-big" id="dist-display">100</div>
+                <div style="color:var(--sonar); font-size:1.2rem;" id="target-unit">KILOMETERS</div>
+                <button class="btn-anchor" id="btn-anchor" onclick="game.endVoyage(true)">⚓ 拋錨 / 完成任務</button>
+            </div>
+            
+            <div class="voyage-progress-container" style="z-index:10;"><div class="voyage-progress-bar" id="voyage-progress"></div></div>
+            <div id="melas-signal" style="display:none; margin-top:20px; color:#ce93d8; font-weight:bold; font-size:1.2rem; text-shadow:0 0 10px #ce93d8;">
+                ⚠ 偵測到高階神祕訊號 ⚠
+            </div>
+        </div>
+        
+        <div class="control-panel">
+            <div class="dashboard-main">
+                
+                <div style="border-right:1px solid #2c3e50; padding-right:15px;">
+                    <div style="color:var(--gold); font-size:0.85rem; margin-bottom:15px; letter-spacing:1px;">SYSTEM STATUS</div>
+                    <div class="bar-container"><div class="bar-label"><span>FUEL</span><span id="bar-fuel-txt">100/100</span></div><div class="bar-track"><div class="bar-val" id="bar-fuel" style="width:100%; background:var(--gold)"></div></div></div>
+                    <div class="bar-container"><div class="bar-label"><span>FOOD</span><span id="bar-food-txt">100/100</span></div><div class="bar-track"><div class="bar-val" id="bar-food" style="width:100%; background:var(--sonar)"></div></div></div>
+                    <div class="bar-container"><div class="bar-label"><span>HULL</span><span id="bar-hp-txt">100/100</span></div><div class="bar-track"><div class="bar-val" id="bar-hp" style="width:100%; background:var(--sonar)"></div></div></div>
+                    <div class="bar-container"><div class="bar-label"><span>FATIGUE</span><span id="bar-fat-txt">0/100</span></div><div class="bar-track"><div class="bar-val" id="bar-fat" style="width:0%; background:var(--alert)"></div></div></div>
+                    <div style="margin-top:20px; text-align:center; background:#000; padding:15px; border:1px solid #2c3e50;">
+                        <div style="font-size:0.8rem; color:#555;">ACTION POINTS</div>
+                        <div id="dash-ap" style="font-size:2.5rem; color:#fff; font-weight:bold;">2</div>
+                    </div>
+                </div>
+
+                <div class="middle-column">
+                    <button class="cmd-btn" style="border-color:var(--purple); background:rgba(206, 147, 216, 0.1);" onclick="game.openBackpack()">
+                        <div style="font-size:1.5rem; margin-right:10px;">🎒</div>
+                        <div><div class="cmd-role" style="color:var(--purple)">INVENTORY</div><div class="cmd-name">打開船隻背包</div></div>
+                    </button>
+                    
+                    <div id="crisis-board" style="display:flex; flex-direction:column; gap:5px; margin-bottom:5px;"></div>
+                    
+                    <div style="color:var(--sonar); font-weight:bold; font-size:0.8rem; letter-spacing:1px;">RADAR NODES (探測節點)</div>
+                    <div class="action-grid" id="node-grid"></div>
+
+                    <div style="color:var(--gold); font-weight:bold; font-size:0.8rem; margin-top:10px; letter-spacing:1px;">CREW ACTIONS (船員指令)</div>
+                    <div class="action-grid" id="action-grid"></div>
+                </div>
+
+                <div class="sys-log" id="sys-log"></div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-overlay" style="display:none;">
+        <div class="modal-box">
+            <div class="comm-log">
+                <img class="avatar-lg" id="modal-face" src="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                <div class="avatar-lg" id="modal-face-fallback" style="display:none; font-size:2rem;">?</div>
+                <div class="dialogue">
+                    <div class="speaker" id="modal-speaker">SYSTEM</div>
+                    <div class="msg" id="modal-msg">...</div>
+                </div>
+            </div>
+            <div id="modal-btn-container" style="display:flex; flex-wrap:wrap; justify-content:flex-end; gap:10px; margin-top:20px;">
+                <button class="tech-btn" id="modal-default-btn" style="width:auto; padding:10px 30px;" onclick="game.closeModal()">ACKNOWLEDGE</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="encounter-modal" style="display:none; z-index:1005;">
+        <div class="modal-box" style="border-color:var(--alert); box-shadow: 0 0 30px rgba(255, 23, 68, 0.2);">
+            <h2 id="enc-title" style="color:var(--alert); border-bottom:1px solid var(--alert);">⚠ 突發事件</h2>
+            <div id="enc-desc" style="color:#cfd8dc; font-size:1.1rem; line-height:1.6; margin:20px 0; text-align:left;">...</div>
+            <div id="enc-choices" style="display:flex; flex-direction:column; gap:10px;"></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="backpack-modal" style="display:none; z-index:1010;">
+        <div class="modal-box" style="border-color:var(--purple); box-shadow: 0 0 30px rgba(206, 147, 216, 0.2);">
+            <h2 style="color:var(--purple); border-bottom:1px solid var(--purple); margin-top:0;">🎒 船上背包</h2>
+            <div id="backpack-list" class="grid" style="max-height:50vh; overflow-y:auto; text-align:left; margin:20px 0; padding-right:10px;"></div>
+            <button class="tech-btn" style="width:100%; border-color:var(--purple); color:var(--purple);" onclick="document.getElementById('backpack-modal').style.display='none'">關閉背包</button>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="stages.js"></script>
+    <script src="engine.js"></script>
+    
+    <script>
+        // 確保所有檔案載入後才初始化遊戲
+        window.onload = function() {
+            if (window.game && window.game.init) {
+                window.game.init();
+            } else {
+                console.error("Game object or init function not found!");
+            }
+        };
+    </script>
+</body>
+</html>
