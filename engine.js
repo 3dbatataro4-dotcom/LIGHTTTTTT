@@ -37,7 +37,8 @@ Object.assign(window.game, {
 
             this.init();
             this.switchMode('town');
-            this.saveGame(false);
+            // 🌟 自動存檔已移除 (改為全手動)
+            // this.saveGame(false);
             // 🌟 呼叫前置劇情
             this.showPrologue(); 
         }, 1000);
@@ -94,7 +95,7 @@ Object.assign(window.game, {
         }, 10);
     },
 
-    // 🌟 新增：測試模式 (直達勝利後小鎮生活)
+    // 🌟 修改：測試模式 (直達 BOSS 戰前夕)
     debugVictoryMode: function() {
         document.getElementById('title-layer').style.display = 'none';
         document.getElementById('main-hud').style.display = 'flex';
@@ -103,21 +104,21 @@ Object.assign(window.game, {
         this.playMusic(BGM_PORT);
         
         // 設定測試數值
-        this.day = 11; // 第 11 天 (勝利後)
-        this.money = 99999; 
-        this.fuel = 100; this.maxFuel = 300;
-        this.food = 100; this.maxFood = 300;
+        this.day = 10; // 第 10 天 (BOSS 戰前夕)
+        this.money = 9999; 
+        this.fuel = 300; this.maxFuel = 300;
+        this.food = 300; this.maxFood = 300;
         this.hp = 100; this.san = 100;
         this.crewMax = 8;
-        this.flags.victory = true; // 設定勝利旗標
+        this.flags.victory = false; // 未勝利
         
         // 解鎖所有科技
         this.upgrades = { light: true, armor: true, torpedo: true, submarine: true };
         
-        // 套用勝利主題
-        document.body.classList.add('theme-sunny');
+        // 移除勝利主題 (確保是暗黑風格)
+        document.body.classList.remove('theme-sunny');
 
-        this.modal("system", "DEBUG MODE", "已啟動勝利後測試模式。<br>天數：DAY 11<br>狀態：已擊敗克拉肯<br>主題：明亮小鎮<br><br>盡情享受退休生活吧。");
+        this.modal("system", "DEBUG MODE", "已啟動 BOSS 戰測試模式。<br>天數：DAY 10 (決戰日)<br>狀態：設施全滿，資金充足<br>請前往公會接取【深淵中心】任務。");
         
         this.refreshMissions(); 
         this.updateUI();
@@ -853,9 +854,20 @@ Object.assign(window.game, {
             this.inventory.forEach((itemId, idx) => {
                 let item = ITEM_DB[itemId];
                 // 🌟 如果是魚類 (type: fish)，不顯示使用按鈕
-                let useBtn = item.type === 'fish' ? '' : `<button class="tech-btn" style="border-color:var(--purple); color:var(--purple); margin-top:10px;" onclick="game.useItem(${idx})">使用道具</button>`;
+                let useBtn = item.type === 'fish' ? '' : `<button class="tech-btn" style="border-color:var(--purple); color:var(--purple); margin-top:10px; position:relative; z-index:2;" onclick="event.stopPropagation(); game.useItem(${idx})">使用道具</button>`;
                 
-                list.innerHTML += `<div class="tech-card" style="border-color:var(--purple);">
+                // 🌟 新增：長按丟棄事件 (僅在出航時生效)
+                const events = this.isVoyaging ? `
+                    oncontextmenu="return false;"
+                    onmousedown="game.handleItemPress(this, ${idx}, event)"
+                    onmouseup="game.handleItemRelease(this)"
+                    onmouseleave="game.handleItemRelease(this)"
+                    ontouchstart="game.handleItemPress(this, ${idx}, event)"
+                    ontouchcancel="game.handleItemRelease(this)"
+                    ontouchend="game.handleItemRelease(this)"
+                ` : '';
+
+                list.innerHTML += `<div class="tech-card" style="border-color:var(--purple); position:relative; user-select:none; -webkit-user-select:none;" ${events}>
                     <div class="card-header" style="justify-content:flex-start; align-items:center; border-bottom: 1px dashed #333; padding-bottom: 10px; margin-bottom: 10px;">
                         <span style="font-size:1.5rem; margin-right:10px;">${item.icon}</span>
                         <span class="card-title" style="color:var(--purple); margin:0;">${item.name}</span>
@@ -866,6 +878,44 @@ Object.assign(window.game, {
             });
         }
         document.getElementById('backpack-modal').style.display = 'flex';
+    },
+
+    // --- 🌟 新增：背包物品長按丟棄邏輯 ---
+    handleItemPress: function(el, idx, e) {
+        if (e && e.type === 'mousedown' && this.lastTouchTime && (Date.now() - this.lastTouchTime < 1000)) return;
+        if (e && e.type === 'touchstart') { this.lastTouchTime = Date.now(); e.stopPropagation(); }
+        
+        if(this.pressTimer) clearTimeout(this.pressTimer);
+        this.longPressTriggered = false;
+        
+        this.pressTimer = setTimeout(() => {
+            this.longPressTriggered = true;
+            if(navigator.vibrate) navigator.vibrate(50);
+            this.confirmDiscardItem(idx);
+        }, 800); // 長按 0.8 秒觸發
+    },
+    handleItemRelease: function(el) {
+        if(this.pressTimer) clearTimeout(this.pressTimer);
+    },
+    confirmDiscardItem: function(idx) {
+        let itemId = this.inventory[idx];
+        let item = ITEM_DB[itemId];
+        this.modal("system", "丟棄物品", `確定要將 <span style="color:var(--alert)">${item.name}</span> 丟入深海嗎？<br>(此操作無法復原)`);
+        
+        let btnContainer = document.getElementById('modal-btn-container');
+        if(btnContainer) {
+            btnContainer.innerHTML = `
+                <button class="tech-btn" style="border-color:var(--alert); color:var(--alert);" onclick="game.discardItem(${idx})">確認丟棄</button>
+                <button class="tech-btn" style="border-color:#aaa; color:#aaa;" onclick="game.closeModal()">取消</button>
+            `;
+        }
+    },
+    discardItem: function(idx) {
+        this.inventory.splice(idx, 1);
+        this.closeModal();
+        this.log("已丟棄物品。", "color:#aaa");
+        this.openBackpack(); // 刷新背包介面
+        this.updateUI();
     },
 
     // 使用道具
