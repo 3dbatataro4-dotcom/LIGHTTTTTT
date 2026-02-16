@@ -64,7 +64,7 @@ const DB = {
         { 
             id: 'lanlan', name: '維爾德拉科斯(蘭蘭)', role: 'GUARD', 
             san: 40, maxSan: 40, trauma: null, region: 'sector7',
-            desc: '【主動】斬擊/物資：找回 20 FOOD，戰鬥中對巨型觸手造成毀滅傷害。<br>【被動】怕鬼：20%機率被嚇到 SAN-10 (喬諾娜在場免疫)。<br>【描述】武力極高的純情龍族，物理輸出頂尖，但精神極易崩潰。' 
+            desc: '【主動】斬擊/物資：找回 20 FOOD，戰鬥中對巨型觸手造成毀滅傷害。<br>【被動】怕鬼：20%機率被嚇到 SAN-10。<br>【描述】武力極高的純情龍族，物理輸出頂尖，但精神極易崩潰。' 
         },
         { 
             id: 'lazar', name: '拉扎爾', role: 'MEDIC', 
@@ -76,7 +76,7 @@ const DB = {
         { 
             id: 'carlota', name: '卡洛特', role: 'SCOUT', cost: 200, 
             san: 70, maxSan: 70, trauma: null, region: 'sector7',
-            desc: '【主動】規避暗礁：推進 10 KM。<br>【被動】危險直覺：可在部分危機中提前預警。<br>【描述】諾維安的弟弟。能敏銳避開深海的環境陷阱。' 
+            desc: '【主動】規避暗礁：推進 15 KM。<br>【被動】危險直覺：可在部分危機中提前預警。<br>【描述】諾維安的弟弟。能敏銳避開深海的環境陷阱。' 
         },
         { 
             id: 'estrella', name: '星星', role: 'ENGINEER', cost: 200, 
@@ -84,14 +84,14 @@ const DB = {
             desc: '【主動】萬能維修：船體 HP 恢復 15 點。<br>【被動】技工：可處理機械危機。<br>【描述】可愛的萬能雜工，BOSS 戰中搶修船體的關鍵人物。' 
         },
         { 
-            id: 'philip', name: '腓力', role: 'BRAWLER', cost: 300, 
+            id: 'philip', name: '腓力', role: 'BRAWLER', cost: 250, 
             san: 75, maxSan: 75, trauma: null, region: 'sector7',
             desc: '【主動】暴力破障：額外推進 20 KM，BOSS戰重火力轟炸。<br>【被動】苦力：可處理勞力危機。<br>【描述】率直忠誠的保母兼打手，專門粉碎深海巨獸的重甲。' 
         },
         { 
-            id: 'nathanael', name: '拿但業', role: 'NOBLE', cost: 400, 
+            id: 'nathanael', name: '拿但業', role: 'NOBLE', cost: 350, 
             san: 50, maxSan: 50, trauma: null, region: 'sector7',
-            desc: '【主動】絕對命令：若腓力在場，腓力效率爆發(極巨量傷害)；若不在則發懶。<br>【描述】嬌氣的少爺。雖然體質很雖，但他能讓腓力的破壞力引導至極限。' 
+            desc: '【主動】絕對命令：指揮特定隊友進行極限爆發；若無人可用則會偷懶。<br>【描述】嬌氣的少爺。雖然體質很雖，但他能讓腓力的破壞力引導至極限。' 
         },
         { 
             id: 'venator', name: '維納托', role: 'GENIUS', cost: 500, 
@@ -106,7 +106,7 @@ const DB = {
         { 
             id: 'jornona', name: '喬諾娜', role: 'SINGER', cost: 300, 
             san: 70, maxSan: 70, trauma: null, region: 'sector7',
-            desc: '【主動】海妖之歌：全體 SAN 恢復 15。<br>【被動】愛的力量：蘭蘭的「怕鬼」失效。<br>【描述】蘭蘭的戀人。溫柔的歌聲能有效抵禦海怪的深海低語。' 
+            desc: '【主動】海妖之歌：全體 SAN 恢復 15。<br>【描述】蘭蘭的戀人。溫柔的歌聲能有效抵禦海怪的深海低語。' 
         },
         { 
             id: 'kleion', name: '克里昂', role: 'GHOST', cost: 250, 
@@ -172,6 +172,22 @@ const DB = {
         locs: ['淺灘 (Near)', '暗礁 (Mid)', '深淵 (Far)']
     }
 };
+
+// --- 🌟 新增：連攜技能資料庫 (Synergy DB) ---
+const SYNERGY_DB = [
+    {
+        name: "絕對命令 (Absolute Command)",
+        members: ["拿但業", "腓力"],
+        icon: "👑",
+        desc: "當兩人在同一艘船上時，拿但業的技能將強制觸發腓力的潛能。<br><span style='color:var(--gold)'>效果：推進距離暴增至 35KM (一般) / 造成 300 點毀滅傷害 (BOSS戰)。</span><br><span style='color:#777'>若腓力不在場，拿但業只會偷懶 (5KM / 0傷害)。</span>"
+    },
+    {
+        name: "愛的力量 (Love's Protection)",
+        members: ["喬諾娜", "蘭蘭"],
+        icon: "💖",
+        desc: "喬諾娜的歌聲能安撫蘭蘭的不安。<br><span style='color:var(--gold)'>效果：蘭蘭的被動負面特質【怕鬼】完全失效。</span><br><span style='color:#777'>蘭蘭不再會因為幻覺而拒絕行動或扣除 SAN 值。</span>"
+    }
+];
 
 // --- 新增：雷達節點資料庫 ---
 const NODE_DB = [
@@ -456,12 +472,12 @@ const ITEM_DB = {
 // --- 新增：BOSS 資料 ---
 const BOSS_DATA = {
     name: '舊日支配者 - 克拉肯',
-    hp: 3000, // BOSS 血量 (優化體驗)
+    hp: 5000, // 🌟 提升血量至 5000，增加持久戰壓力
     attacks: [
-        { msg: "巨大的觸手重擊船體！(HP -25)", effect: (game)=>{ game.hp-=25; } },
-        { msg: "克拉肯發出精神衝擊！(SAN -30)", effect: (game)=>{ game.san-=30; } },
-        { msg: "深淵凝視著你們... (全體疲勞 +25)", effect: (game)=>{ game.fatigue+=25; } },
-        { msg: "觸手纏繞住引擎！(觸發危機：引擎過熱)", effect: (game)=>{ game.addCrisis('engine_fire'); } }
+        { msg: "巨大的觸手重擊船體！", effect: (game, mult=1)=>{ let dmg=Math.floor(25*mult); game.hp-=dmg; game.log(`(船體 HP -${dmg})`, "color:var(--alert)"); } },
+        { msg: "克拉肯發出精神衝擊！", effect: (game, mult=1)=>{ let dmg=Math.floor(20*mult); game.damageAllSan(dmg, "精神衝擊"); } },
+        { msg: "深淵凝視著你們...", effect: (game, mult=1)=>{ let dmg=Math.floor(20*mult); game.fatigue+=dmg; game.log(`(全體疲勞 +${dmg})`, "color:var(--alert)"); } },
+        { msg: "觸手纏繞住引擎！", effect: (game, mult=1)=>{ game.addCrisis('engine_fire'); game.hp-=Math.floor(10*mult); game.log(`(船體 HP -${Math.floor(10*mult)})`, "color:var(--alert)"); } }
     ]
 };
 
