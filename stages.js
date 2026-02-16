@@ -648,15 +648,17 @@ Object.assign(window.game, {
             }
             else if(id === 'lazar') { prog += 5; this.healAllSan(20); this.fatigue = Math.max(0, this.fatigue-15); msg = "拉扎爾進行心理疏導 (全體 SAN+20, 疲勞-15)。"; }
             else if(id === 'jornona') { prog += 5; this.healAllSan(15); this.fatigue = Math.max(0, this.fatigue-15); msg = "喬諾娜唱起了歌 (全體 SAN+15, 疲勞-15)。"; }
-            else if(id === 'molly') { prog += 5; this.hp = Math.min(100, this.hp+15); this.fatigue = Math.max(0, this.fatigue-10); msg = "茉莉分發了強效補劑 (HP+15, 疲勞-10)。"; }
+            else if(id === 'molly') { prog += 5; this.hp = Math.min(100, this.hp+15); this.healAllSan(10); this.fatigue = Math.max(0, this.fatigue-10); msg = "茉莉分發了強效補劑 (HP+15, SAN+10, 疲勞-10)。"; }
             else if(id === 'novian') { prog += 15; msg = "諾維安親自掌舵，全速推進！"; }
             else if(id === 'philip') { prog += 20; msg = "腓力靠蠻力撞開了暗礁！"; }
             else if(id === 'nathanael') { prog = this.crew.find(c => c.id === 'philip') ? prog + 30 : 5; msg = prog > 5 ? "拿但業下達絕對命令，腓力效率爆發！" : "拿但業隨便應付了一下。"; }
             else if(id === 'carlota') { prog += 10; msg = "卡洛特敏銳地找出了安全的航線！"; }
             else if(id === 'venator') { prog += 15; msg = "維納托的機械精準計算出最佳路徑！"; }
-            else if(id === 'narcissus') { prog += 10; msg = "納希瑟斯不知用了什麼方法，讓航行變得順利。"; }
-            else if(id === 'kleion') { prog += 10; msg = "克里昂用化學藥劑腐蝕了前方的障礙！"; }
+            else if(id === 'narcissus') { prog += 20; this.fatigue = Math.max(0, this.fatigue-10); msg = "納希瑟斯不知用了什麼方法，讓航行變得順利 (疲勞-10)。"; }
+            else if(id === 'kleion') { prog += 15; msg = "克里昂用化學藥劑腐蝕了前方的障礙！"; }
             else if(id === 'manmu') { prog += 5; msg = "小目用金錢解決了問題... 雖然不知道給了誰。"; }
+            else if(id === 'estrella') { prog += 5; this.hp = Math.min(100, this.hp+15); msg = "星星進行了緊急維修 (HP+15)。"; this.notify('SFX', { id: id, vfx: 'repair' }); }
+            else if(id === 'costa') { prog += 5; this.hp = Math.min(100, this.hp+15); msg = "科絲塔用奈米機器修補了船艙 (HP+15)。"; this.notify('SFX', { id: id, vfx: 'repair' }); }
             else { msg = `船員執行了操作。`; }
             
             this.distLeft = Math.max(0, this.distLeft - prog);
@@ -1059,8 +1061,8 @@ Object.assign(window.game, {
         
         if(!this.bossMode && typeof this.generateNodes === 'function') this.generateNodes(); 
 
-        // 🌟 自動存檔：每回合結束時保存進度
-        if (this.saveGame) this.saveGame(false); // 🌟 靜默存檔，不跳出提示
+        // 🌟 自動存檔已移除 (改為全手動)
+        // if (this.saveGame) this.saveGame(false);
 
         // 🌟 觸發蜜拉思事件判定
         if (!this.bossMode) this.checkMelas();
@@ -1083,7 +1085,7 @@ Object.assign(window.game, {
             // 當回合流逝、環境扣完 SAN 之後，重新畫出船員按鈕。
             // 這樣不僅諾維安（與所有人）的 SAN 條會瞬間下降，
             // 被上鎖的按鈕也會被正確解鎖，再也不會卡死了！
-            if (this.distLeft > 0) {
+            if (this.distLeft > 0 || this.bossMode) {
                 this.renderCmds(); 
             } else {
                 const actionGrid = document.getElementById('action-grid');
@@ -1154,16 +1156,17 @@ Object.assign(window.game, {
                 this.modal("hassel", "哈蘇", `任務完成。獲得 $${reward}。`);
             }
         } else {
-            this.money -= 2000; // 🌟 允許負債，扣除 2000
+            this.money -= 1000; // 🌟 允許負債，扣除 1000 (原 2000)
             this.fuel=20; this.food=20; this.san=50; this.hp=50;
             this.hour += 2; this.fatigue += 30;
-            this.modal("system", "系統", "任務失敗。物資/船體極限。已被拖回港口，扣除救援費用 $2000。");
+            this.modal("system", "系統", "任務失敗。物資/船體極限。已被拖回港口，扣除救援費用 $1000。");
         }
         
         this.mission = null;
         this.refreshMissions();
         this.updateUI();
-        if (this.saveGame) this.saveGame(false); // 🌟 結算後自動存檔 (靜默)
+        // 🌟 自動存檔已移除 (改為全手動)
+        // if (this.saveGame) this.saveGame(false);
         this.checkGameOver();
     },
 
@@ -1393,21 +1396,21 @@ Object.assign(window.game, {
             
             // 🌟 優化：Flex 佈局增加 wrap 防止擠壓，增大觸控區域
             html += `
-            <div class="tech-card" style="padding:10px; margin-bottom:8px; border-color:#444; width:100%; box-sizing:border-box;">
-                <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px;">
-                    <div style="display:flex; align-items:center; flex:1 1 auto; min-width:120px; max-width:100%;">
+            <div class="tech-card" style="padding:10px; margin-bottom:8px; border-color:#444; width:100%; box-sizing:border-box; overflow:hidden;">
+                <div style="display:flex; flex-wrap:nowrap; justify-content:space-between; align-items:center; gap:10px;">
+                    <div style="display:flex; align-items:center; flex:1; min-width:0;">
                         <span style="font-size:1.6rem; margin-right:8px; background:rgba(0,0,0,0.3); border-radius:8px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">${item.icon}</span>
                         <div style="min-width:0; flex:1;">
                             <div style="color:var(--sonar); font-weight:bold; font-size:0.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name}</div>
                             <div style="font-size:0.8rem; color:#aaa;">單價: $${unitPrice}</div>
                         </div>
                     </div>
-                    <div style="text-align:right; flex:0 0 auto; margin-left:auto;">
+                    <div style="text-align:right; flex-shrink:0;">
                         <div style="color:var(--gold); font-weight:bold; font-size:1rem;">$<span id="subtotal-${id}">0</span></div>
                     </div>
                 </div>
                 <div style="display:flex; align-items:center; gap:8px; margin-top:10px; background:rgba(255,255,255,0.05); padding:6px 8px; border-radius:6px;">
-                    <input type="range" class="fish-slider" data-id="${id}" data-price="${unitPrice}" min="0" max="${count}" value="0" style="flex:1; height:30px; min-width:50px;" oninput="game.updateSellTotal()">
+                    <input type="range" class="fish-slider" data-id="${id}" data-price="${unitPrice}" min="0" max="${count}" value="0" style="flex:1; height:30px; min-width:0;" oninput="game.updateSellTotal()">
                     <div style="min-width:40px; text-align:right; color:#fff; font-family:monospace; font-size:0.9rem;"><span id="qty-${id}">0</span>/${count}</div>
                 </div>
             </div>`;
