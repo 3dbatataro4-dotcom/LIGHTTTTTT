@@ -666,6 +666,9 @@ Object.assign(window.game, {
             }
         } else if (tabId === 'crew') {
             html = backBtn + `<div class="grid">`;
+            // 🌟 新增：查看連攜技能按鈕
+            html += `<button class="tech-btn" style="grid-column:1/-1; margin-bottom:10px; border-color:var(--purple); color:var(--purple);" onclick="game.showSynergies()">✨ 查看角色連攜技能 (Synergies)</button>`;
+            
             this.crew.forEach(c => {
                 let status = "正常", color = "var(--sonar)";
                 if(this.fatigue > 50) { status = "疲勞"; color = "var(--gold)"; }
@@ -1244,6 +1247,30 @@ Object.assign(window.game, {
                 <button class="tech-btn" style="flex:1; padding:12px 0;" onclick="game.closeModal()">關閉</button>
             `;
         }
+    },
+
+    // 🌟 新增：顯示連攜技能彈窗
+    showSynergies: function() {
+        let html = `<div style="text-align:left; max-height:50vh; overflow-y:auto;">`;
+        
+        if (typeof SYNERGY_DB !== 'undefined') {
+            SYNERGY_DB.forEach(s => {
+                // 檢查玩家是否湊齊了這對組合 (顯示亮色或暗色)
+                let hasAll = s.members.every(name => this.crew.find(c => c.name.includes(name)));
+                let style = hasAll ? "border-color:var(--gold); opacity:1;" : "border-color:#555; opacity:0.6;";
+                let status = hasAll ? "<span style='color:var(--gold); font-weight:bold; float:right;'>[已激活]</span>" : "<span style='color:#777; float:right;'>[未湊齊]</span>";
+
+                html += `
+                <div class="tech-card" style="${style} margin-bottom:10px; padding:10px;">
+                    <div style="font-size:1.1rem; color:var(--purple); margin-bottom:5px;">${s.icon} ${s.name} ${status}</div>
+                    <div style="font-size:0.85rem; color:#aaa; margin-bottom:5px;">成員: ${s.members.join(' + ')}</div>
+                    <div style="font-size:0.9rem; color:#ddd; line-height:1.4;">${s.desc}</div>
+                </div>`;
+            });
+        }
+        html += `</div>`;
+
+        this.modal("system", "角色連攜技能", html);
     },
 
     // 🌟 新增：解僱船員
