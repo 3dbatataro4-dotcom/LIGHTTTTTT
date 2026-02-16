@@ -495,9 +495,9 @@ Object.assign(window.game, {
                             <div class="bp-node ${this.upgrades.armor ? 'bp-bought' : ''}" style="top: 35%; left: 25%;" ${bpEvents('armor', 2000)}>
                                 <div class="bp-dot"></div><div class="bp-label">🛡️ 裝甲 $2000</div>
                             </div>
-                            <div class="bp-node ${this.upgrades.torpedo ? 'bp-bought' : ''}" style="top: 35%; left: 75%;" ${bpEvents('torpedo', 2500)}>
+                            <div class="bp-node ${this.upgrades.torpedo ? 'bp-bought' : ''}" style="top: 35%; left: 75%;" ${bpEvents('torpedo', 3000)}>
                                 <div class="bp-dot" style="${this.upgrades.torpedo ? '' : 'background:var(--alert); box-shadow:0 0 10px var(--alert);'}"></div>
-                                <div class="bp-label">💥 魚雷 $2500</div>
+                                <div class="bp-label">💥 魚雷 $3000</div>
                             </div>
                             <div class="bp-node ${maxCrew ? 'bp-bought bp-max' : ''}" style="top: 48%; left: 50%;" ${bpEvents('crew', 1000)}>
                                 <div class="bp-dot"></div><div class="bp-label">👥 船員艙 ${maxCrew ? '(MAX)' : '(+1) $1000'}</div>
@@ -546,8 +546,8 @@ Object.assign(window.game, {
                 ${sliderCard('food', '口糧', this.food, this.maxFood, 3)}
                 ${sliderCard('hp', '船體裝甲修復', this.hp, 100, 5)}
                 ${this.sysCard('初級釣竿', '$150', '耐久度 10/10，開啟釣魚功能', `game.buyRod()`)}
-                ${this.sysCard('特製魚餌', '$20', '釣魚必備消耗品 (放入背包)', `game.buyBait()`)}
-                ${this.sysCard('捕魚網', '$40', '一次性捕魚道具 (放入倉庫)', `game.buyNet()`)}
+                ${this.sysCard('特製魚餌', '$50', '釣魚必備消耗品 (放入背包)', `game.buyBait()`)}
+                ${this.sysCard('捕魚網', '$100', '一次性捕魚道具 (放入倉庫)', `game.buyNet()`)}
             </div>`;
             
         // 🌟 新增：港口與釣魚介面
@@ -1149,6 +1149,11 @@ Object.assign(window.game, {
             // 🌟 船員行動不耗 AP，但每回合限一次 (僅在 BOSS 戰限制)
             let isDisabled = (this.bossMode && c.hasActed) ? 'disabled style="opacity:0.5; filter:grayscale(1);"' : '';
             
+            // 🌟 BOSS 戰選定高亮樣式
+            let isSelected = (this.bossMode && this.selectedActorId === c.id);
+            let borderStyle = isSelected ? 'border: 2px solid var(--gold); box-shadow: 0 0 15px var(--gold); transform: scale(1.02);' : '';
+            let bgStyle = isSelected ? 'background: rgba(255, 215, 0, 0.15);' : '';
+            
             // 🌟 判定創傷標記與理智百分比
             let sanPercent = (c.san / c.maxSan) * 100;
             let traumaWarning = c.trauma ? `<span style="color:var(--alert); font-size:0.7rem; margin-left:4px; font-weight:bold;">[${c.trauma.name}]</span>` : '';
@@ -1160,7 +1165,7 @@ Object.assign(window.game, {
                 ontouchstart="game.handleBtnPress(this, '${c.id}')" 
                 ontouchend="game.handleBtnRelease(this)"
                 onclick="if(!game.longPressTriggered) game.action('${c.id}')"
-                style="align-items:flex-start; padding:8px; display:flex;">
+                style="align-items:flex-start; padding:8px; display:flex; ${borderStyle} ${bgStyle}">
                 <img src="${getImgUrl(c.id)}" class="cmd-img" style="border-radius:4px; flex-shrink:0;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
                 <div class="cmd-img card-avatar-fallback" style="display:none; font-size:1.2rem; border-radius:4px; flex-shrink:0;">${c.name[0]}</div>
                 
@@ -1181,13 +1186,16 @@ Object.assign(window.game, {
             </button>`;
         });
         
-        // 🌟 新增：手動結束回合按鈕 (永遠顯示在最後)
-        // 🌟 修正：僅在 BOSS 戰顯示結束回合
+        // 🌟 BOSS 戰專用：執行按鈕
         if (this.bossMode) {
-            grid.innerHTML += `<button class="cmd-btn" style="border-color:#555; background:rgba(0,0,0,0.5); justify-content:center;" onclick="game.nextTurn()">
+            let execStyle = this.selectedActorId ? 'border-color:var(--gold); color:var(--gold); animation:blink 2s infinite;' : 'border-color:#555; color:#777; cursor:not-allowed;';
+            let execText = this.selectedActorId ? '⚡ 執行指令 & 結束回合' : '⏳ 請選擇行動角色';
+            let execAction = this.selectedActorId ? 'game.executeBossAction()' : '';
+
+            grid.innerHTML += `<button class="cmd-btn" style="${execStyle} justify-content:center;" onclick="${execAction}">
                 <div style="text-align:center;">
-                    <div style="font-size:1.5rem;">⏳</div>
-                    <div class="cmd-name" style="color:#aaa;">結束回合 (NEXT TURN)</div>
+                    <div style="font-size:1.5rem;">⚔️</div>
+                    <div class="cmd-name">${execText}</div>
                 </div>
             </button>`;
         }
