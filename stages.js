@@ -166,6 +166,7 @@ Object.assign(window.game, {
         const target = g.targets[Math.floor(Math.random()*g.targets.length)];
         let a='', d=0, r=0, t=0;
         // 🌟 難度翻倍：拉長距離，逼迫升級資源！
+        // 🌟 平衡調整：下調初期報酬，避免資金過於充裕
         if(tier==='near'){ a='淺灘'; d=80 + Math.floor(Math.random()*40); r=600; t=6; }
         else if(tier==='mid'){ a='暗礁'; d=180 + Math.floor(Math.random()*80); r=1800; t=14; }
         else if(tier==='far'){ a='深淵'; d=350 + Math.floor(Math.random()*150); r=4000; t=24; }
@@ -387,6 +388,7 @@ Object.assign(window.game, {
             this.bossHp = BOSS_DATA.hp; // 🌟 使用 data.js 設定的 5000 血量
             this.bossMaxHp = BOSS_DATA.hp; // 🌟 記錄最大血量用於階段判定
             this.flags.bossPhase2 = false; // 重置狂暴狀態
+            this.selectedActorId = null;   // 🌟 重置選定角色
             // 🌟 啟動視覺特效
             document.body.classList.add('boss-screen'); 
             let noise = document.getElementById('boss-noise');
@@ -571,12 +573,20 @@ Object.assign(window.game, {
 
     // --- 🌟 重製船員行動邏輯 (區分一般航行與 BOSS 戰) ---
     action: function(id) {
-        // 🌟 BOSS 戰限制：每回合全船只能有一人行動
-        if (this.bossMode && this.flags.crewActedThisTurn) {
-            this.notify('LOG', { msg: "本回合已有船員行動過！(BOSS戰限制單人行動)", style: "color:var(--alert)" });
+        // 🌟 BOSS 戰優化：選定角色模式 (Select Mode)
+        if (this.bossMode) {
+            if (this.flags.crewActedThisTurn) return; 
+            
+            this.selectedActorId = id; // 記錄當前選定的角色
+            this.renderCmds(); // 重新渲染以顯示高亮
+            
+            let actor = this.crew.find(c => c.id === id);
+            // 顯示戰術預告
+            this.log(`[戰術預備] 已選擇：${actor.name} (請點擊下方按鈕執行)`, "color:var(--sonar)");
             return;
         }
         
+        // --- 以下為一般航行模式 (直接執行) ---
         let actor = this.crew.find(c => c.id === id);
         // 一般航行檢查個人是否行動過
         // if (!this.bossMode && actor && actor.hasActed) {
@@ -608,43 +618,8 @@ Object.assign(window.game, {
         let prog = Math.max(0, (15 + Math.floor(Math.random()*10)) - fatiguePenalty);
         let msg = "";
 
-        if (this.bossMode) {
-            // 🦑 BOSS 戰邏輯 (極致強化版)
-            if(id === 'philip') { 
-                prog = 0; this.bossHp -= 150; msg = "腓力發出怒吼，用重火力轟炸克拉肯！(BOSS HP-150)"; 
-                this.notify('SFX', { id: id, vfx: 'fire' }); 
-            }
-            else if(id === 'nathanael') { 
-                if(this.crew.find(c => c.id === 'philip')) { 
-                    prog = 0; this.bossHp -= 300; msg = "拿但業下達處決命令，腓力發動毀滅打擊！(BOSS HP-300)"; 
-                    this.notify('SFX', { id: 'philip', vfx: 'crit' }); 
-                }
-                else { prog = 0; msg = "拿但業沒看到腓力，嫌觸手太噁心不想動。"; }
-            }
-            else if(id === 'lanlan') { prog = 0; this.bossHp -= 100; msg = "蘭蘭揮舞長戟，斬斷了襲來的觸手！(BOSS HP-100)"; this.notify('SFX', { id: id, vfx: 'slash' }); }
-            else if(id === 'venator') { prog = 0; this.bossHp -= 120; msg = "維納托的機械軍團精準鎖定了克拉肯的弱點！(BOSS HP-120)"; this.notify('SFX', { id: id, vfx: 'tech' }); }
-            else if(id === 'kleion') { prog = 0; this.bossHp -= 80; this.hp = Math.min(100, this.hp+15); msg = "克里昂丟出化學炸藥並修補漏洞！(BOSS HP-80, 船體+15)"; this.notify('SFX', { id: id, vfx: 'chem' }); }
-            // 🌟 輔助角色強化
-            else if(id === 'lazar' || id === 'jornona') { 
-                prog = 0; this.healAllSan(id==='lazar'?30:20); this.fatigue = Math.max(0, this.fatigue-(id==='lazar'?15:20)); 
-                msg = id==='lazar' ? "拉扎爾在戰火中穩定軍心！(全體 SAN+30, 疲勞-15)" : "喬諾娜的歌聲振奮了所有人！(全體 SAN+20, 疲勞-20)"; 
-                this.notify('SFX', { id: id, vfx: 'heal' }); 
-            }
-            else if(id === 'molly') { prog = 0; this.hp = Math.min(100, this.hp+25); this.fatigue = Math.max(0, this.fatigue-15); msg = "茉莉極限搶救船員與裝甲！(HP+25, 疲勞-15)"; this.notify('SFX', { id: id, vfx: 'repair' }); }
-            // 🌟 特殊機制角色
-            else if(id === 'carlota') { prog = 0; this.flags.dodgeNext = true; msg = "卡洛特敏銳地預判了海怪的動作！(躲避下一次攻擊)"; this.notify('SFX', { id: id, vfx: 'tech' }); }
-            else if(id === 'narcissus') { prog = 0; this.bossHp -= 60; this.fatigue = Math.max(0, this.fatigue-15); msg = "納希瑟斯的魅力連觸手都遲疑了一瞬！(BOSS HP-60, 疲勞-15)"; this.notify('SFX', { id: id, vfx: 'slash' }); }
-            else if(id === 'manmu') { 
-                if(this.money >= 50) { this.money -= 50; this.bossHp -= 180; prog = 0; msg = "小目撒出鈔票，呼叫了軌道重砲支援！(BOSS HP-180, -$50)"; this.notify('SFX', { id: id, vfx: 'crit' }); }
-                else { prog = 0; this.bossHp -= 20; msg = "小目發現沒錢了，只能用手槍射擊。(BOSS HP-20)"; }
-            }
-            else if(id === 'estrella' || id === 'costa') { prog = 0; this.hp = Math.min(100, this.hp+30); msg = "發揮機修天賦，穩住了爆裂的船艙！(HP+30)"; this.notify('SFX', { id: id, vfx: 'repair' }); }
-            else { prog = 0; this.bossHp -= 20; msg = "船員用手槍勉強還擊... (BOSS HP-20)"; this.notify('SFX', { id: id, vfx: 'shot' }); }
-            
-            document.getElementById('dist-display').innerText = Math.max(0, this.bossHp);
-            
-        } else {
-            // 🌊 一般航行邏輯 (加入輔助角色回疲勞)
+        // 🌊 一般航行邏輯 (加入輔助角色回疲勞)
+        if (!this.bossMode) {
             if(id === 'lanlan') { 
                 let isJornonaHere = this.crew.find(c => c.id === 'jornona');
                 if(!isJornonaHere && Math.random() < 0.2) { 
@@ -674,32 +649,70 @@ Object.assign(window.game, {
             this.animateDist(oldDist, this.distLeft, 600); // 🌟 修復：讓畫面上的距離數字動起來！
         }
 
-        // 🌟 標記已行動，不扣 AP
-        if(actor && this.bossMode) actor.hasActed = true; 
-        if(this.bossMode) this.flags.crewActedThisTurn = true; // 標記本回合已有人行動
         this.notify('LOG', { msg: msg });
         
-        if (this.bossMode && this.bossHp <= 0) {
+        setTimeout(() => {
+            this.renderDash();
+            document.querySelectorAll('.cmd-btn').forEach(b => b.disabled = false);
+            this.nextTurn(); // 🌟 一般航行：船員行動視為一回合，自動推進並消耗物資
+        }, 600);
+    },
+
+    // 🌟 新增：BOSS 戰執行函數 (Commit Turn)
+    executeBossAction: function() {
+        if (!this.selectedActorId) {
+            this.log("請先選擇一名船員行動！", "color:var(--alert)");
+            return;
+        }
+
+        let id = this.selectedActorId;
+        this.flags.crewActedThisTurn = true; // 🌟 鎖定狀態：按下執行後，直到下回合開始前不可再更換角色
+        this.selectedActorId = null; // 清除選擇
+        let msg = "";
+        let prog = 0;
+
+        // 🦑 BOSS 戰邏輯 (從原 action 函數移至此處)
+        if(id === 'philip') { 
+            this.bossHp -= 150; msg = "腓力發出怒吼，用重火力轟炸克拉肯！(BOSS HP-150)"; 
+            this.notify('SFX', { id: id, vfx: 'fire' }); 
+        }
+        else if(id === 'nathanael') { 
+            if(this.crew.find(c => c.id === 'philip')) { 
+                this.bossHp -= 300; msg = "拿但業下達處決命令，腓力發動毀滅打擊！(BOSS HP-300)"; 
+                this.notify('SFX', { id: 'philip', vfx: 'crit' }); 
+            }
+            else { msg = "拿但業沒看到腓力，嫌觸手太噁心不想動。"; }
+        }
+        else if(id === 'lanlan') { this.bossHp -= 100; msg = "蘭蘭揮舞長戟，斬斷了襲來的觸手！(BOSS HP-100)"; this.notify('SFX', { id: id, vfx: 'slash' }); }
+        else if(id === 'venator') { this.bossHp -= 120; msg = "維納托的機械軍團精準鎖定了克拉肯的弱點！(BOSS HP-120)"; this.notify('SFX', { id: id, vfx: 'tech' }); }
+        else if(id === 'kleion') { this.bossHp -= 80; this.hp = Math.min(100, this.hp+15); msg = "克里昂丟出化學炸藥並修補漏洞！(BOSS HP-80, 船體+15)"; this.notify('SFX', { id: id, vfx: 'chem' }); }
+        else if(id === 'lazar' || id === 'jornona') { 
+            this.healAllSan(id==='lazar'?30:20); this.fatigue = Math.max(0, this.fatigue-(id==='lazar'?15:20)); 
+            msg = id==='lazar' ? "拉扎爾在戰火中穩定軍心！(全體 SAN+30, 疲勞-15)" : "喬諾娜的歌聲振奮了所有人！(全體 SAN+20, 疲勞-20)"; 
+            this.notify('SFX', { id: id, vfx: 'heal' }); 
+        }
+        else if(id === 'molly') { this.hp = Math.min(100, this.hp+25); this.fatigue = Math.max(0, this.fatigue-15); msg = "茉莉極限搶救船員與裝甲！(HP+25, 疲勞-15)"; this.notify('SFX', { id: id, vfx: 'repair' }); }
+        else if(id === 'carlota') { this.flags.dodgeNext = true; msg = "卡洛特敏銳地預判了海怪的動作！(躲避下一次攻擊)"; this.notify('SFX', { id: id, vfx: 'tech' }); }
+        else if(id === 'narcissus') { this.bossHp -= 60; this.fatigue = Math.max(0, this.fatigue-15); msg = "納希瑟斯的魅力連觸手都遲疑了一瞬！(BOSS HP-60, 疲勞-15)"; this.notify('SFX', { id: id, vfx: 'slash' }); }
+        else if(id === 'manmu') { 
+            if(this.money >= 50) { this.money -= 50; this.bossHp -= 180; msg = "小目撒出鈔票，呼叫了軌道重砲支援！(BOSS HP-180, -$50)"; this.notify('SFX', { id: id, vfx: 'crit' }); }
+            else { this.bossHp -= 20; msg = "小目發現沒錢了，只能用手槍射擊。(BOSS HP-20)"; }
+        }
+        else if(id === 'estrella' || id === 'costa') { this.hp = Math.min(100, this.hp+30); msg = "發揮機修天賦，穩住了爆裂的船艙！(HP+30)"; this.notify('SFX', { id: id, vfx: 'repair' }); }
+        else { this.bossHp -= 20; msg = "船員用手槍勉強還擊... (BOSS HP-20)"; this.notify('SFX', { id: id, vfx: 'shot' }); }
+
+        document.getElementById('dist-display').innerText = Math.max(0, this.bossHp);
+        this.notify('LOG', { msg: msg });
+
+        if (this.bossHp <= 0) {
             setTimeout(() => { this.triggerVictory(); }, 1000);
             return;
         }
-        
-        // 🌟 修正：確保 BOSS 戰回合能正確推進
+
         setTimeout(() => {
             this.renderDash();
-            
-            // 🌟 修正：強制解鎖所有指令按鈕 (解決背包按鈕變灰無法點擊的問題)
             document.querySelectorAll('.cmd-btn').forEach(b => b.disabled = false);
-
-            if (!this.bossMode) {
-                this.nextTurn(); // 🌟 一般航行：船員行動視為一回合，自動推進並消耗物資
-            } else {
-                this.renderCmds(); 
-                // 🌟 強制將所有按鈕解鎖，確保下一回合可以點擊
-                document.querySelectorAll('.cmd-btn').forEach(b => {
-                    b.disabled = false; b.style.opacity = '1'; b.style.cursor = 'pointer';
-                });
-            }
+            this.nextTurn(); // 輪到 BOSS 行動
         }, 600);
     },
 
@@ -1017,18 +1030,17 @@ Object.assign(window.game, {
              this.applySanDamage(target, 15, "克拉肯的凝視");
         }
 
-        // 🌟 修改：BOSS 戰為了操作體感，給予 2 AP！
-        if (this.bossMode) {
-            this.activeCrises = []; 
-            if(this.upgrades.torpedo) this.ap = Math.min(3, this.ap + 1); // 🌟 有魚雷才回 AP
-        } else {
-            if(this.upgrades.torpedo) this.ap = Math.min(3, this.ap + 1); // 🌟 一般航行也回 AP (上限3)
-            this.activeCrises.forEach(c => c.penalty(this)); // 一般危機懲罰
-        }
+        // 🌟 修正：統一 AP 回復與危機懲罰邏輯
+        // 移除 this.activeCrises = []，確保 BOSS 戰中危機不會被自動清除
+        if(this.upgrades.torpedo) this.ap = Math.min(3, this.ap + 1);
+        
+        // 🌟 讓危機懲罰在 BOSS 戰也生效 (engine_fire 會判斷模式扣血)
+        this.activeCrises.forEach(c => c.penalty(this));
         
         // 🌟 重置所有船員的行動狀態
         this.crew.forEach(c => c.hasActed = false);
         this.flags.crewActedThisTurn = false; // 重置 BOSS 戰單人行動限制
+        this.selectedActorId = null; // 🌟 確保回合開始時沒有預選角色
 
         // 🌀 100% 疲勞的極限懲罰 (加速掉 SAN 與暈眩)
         if (this.fatigue >= 100) {
@@ -1112,6 +1124,12 @@ Object.assign(window.game, {
         // 判定：船體爆了直接 GAME OVER
         if (this.hp <= 0) {
             this.triggerAbsoluteDeath('hp');
+            return;
+        }
+        
+        // 🌟 修復：SAN 值歸零的死亡判定
+        if (this.san <= 0) {
+            this.triggerAbsoluteDeath('san');
             return;
         }
 
