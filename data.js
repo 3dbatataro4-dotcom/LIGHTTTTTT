@@ -243,9 +243,17 @@ const ENCOUNTER_DB = [
 const CRISIS_DB = {
     'engine_fire': { 
         name: "引擎過熱", 
-        desc: "每回合 Fuel -15", 
+        desc: "每回合 Fuel -15 (BOSS戰: HP -15)", 
         roles: ['ENGINEER', 'ANDROID'], // 星星或科絲塔可以快速解決
-        penalty: (game) => { game.fuel -= 15; game.log("⚠ 引擎持續過熱！額外消耗燃料！", "color:var(--alert)"); } 
+        penalty: (game) => { 
+            if (game.bossMode) {
+                game.hp -= 15; 
+                game.log("⚠ 引擎過熱引發爆炸！船體受損！(HP -15)", "color:var(--alert)");
+            } else {
+                game.fuel -= 15; 
+                game.log("⚠ 引擎持續過熱！額外消耗燃料！", "color:var(--alert)"); 
+            }
+        } 
     },
     'hull_leak': { 
         name: "船艙進水", 
