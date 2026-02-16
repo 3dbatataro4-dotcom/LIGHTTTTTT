@@ -385,6 +385,7 @@ Object.assign(window.game, {
         if(this.mission.type === 'boss') {
             this.bossMode = true;
             this.bossHp = BOSS_DATA.hp; // 🌟 使用 data.js 設定的 5000 血量
+            this.bossMaxHp = BOSS_DATA.hp; // 🌟 記錄最大血量用於階段判定
             this.flags.bossPhase2 = false; // 重置狂暴狀態
             // 🌟 啟動視覺特效
             document.body.classList.add('boss-screen'); 
@@ -532,8 +533,16 @@ Object.assign(window.game, {
         }
 
         this.ap--;
-        this.bossHp -= 250;
-        this.log("💥 發射深淵魚雷！造成重創！(BOSS HP-250)", "color:var(--alert); font-weight:bold;");
+        
+        // 🌟 策略機制：打斷 BOSS 蓄力
+        if (this.flags.bossCharging) {
+            this.flags.bossCharging = false;
+            this.bossHp -= 500; // 打斷獎勵傷害
+            this.log("✨ 魚雷精準命中核心！打斷了深淵死光！(BOSS HP-500)", "color:var(--gold); font-weight:bold; font-size:1.2rem;");
+        } else {
+            this.bossHp -= 250;
+            this.log("💥 發射深淵魚雷！造成重創！(BOSS HP-250)", "color:var(--alert); font-weight:bold;");
+        }
         
         // 播放特效與震動
         document.getElementById('sea-layer').classList.add('shake');
@@ -648,11 +657,11 @@ Object.assign(window.game, {
             }
             else if(id === 'lazar') { prog += 5; this.healAllSan(20); this.fatigue = Math.max(0, this.fatigue-15); msg = "拉扎爾進行心理疏導 (全體 SAN+20, 疲勞-15)。"; }
             else if(id === 'jornona') { prog += 5; this.healAllSan(15); this.fatigue = Math.max(0, this.fatigue-15); msg = "喬諾娜唱起了歌 (全體 SAN+15, 疲勞-15)。"; }
-            else if(id === 'molly') { prog += 5; this.hp = Math.min(100, this.hp+15); this.healAllSan(10); this.fatigue = Math.max(0, this.fatigue-10); msg = "茉莉分發了強效補劑 (HP+15, SAN+10, 疲勞-10)。"; }
+            else if(id === 'molly') { prog += 5; this.hp = Math.min(100, this.hp+10); this.healAllSan(10); this.fatigue = Math.max(0, this.fatigue-10); msg = "茉莉分發了強效補劑 (HP+10, SAN+10, 疲勞-10)。"; }
             else if(id === 'novian') { prog += 15; msg = "諾維安親自掌舵，全速推進！"; }
             else if(id === 'philip') { prog += 20; msg = "腓力靠蠻力撞開了暗礁！"; }
             else if(id === 'nathanael') { prog = this.crew.find(c => c.id === 'philip') ? prog + 30 : 5; msg = prog > 5 ? "拿但業下達絕對命令，腓力效率爆發！" : "拿但業隨便應付了一下。"; }
-            else if(id === 'carlota') { prog += 10; msg = "卡洛特敏銳地找出了安全的航線！"; }
+            else if(id === 'carlota') { prog += 15; msg = "卡洛特敏銳地找出了安全的航線！"; }
             else if(id === 'venator') { prog += 15; msg = "維納托的機械精準計算出最佳路徑！"; }
             else if(id === 'narcissus') { prog += 20; this.fatigue = Math.max(0, this.fatigue-10); msg = "納希瑟斯不知用了什麼方法，讓航行變得順利 (疲勞-10)。"; }
             else if(id === 'kleion') { prog += 15; msg = "克里昂用化學藥劑腐蝕了前方的障礙！"; }
@@ -1034,19 +1043,50 @@ Object.assign(window.game, {
             document.getElementById('sea-layer').classList.add('shake');
             setTimeout(() => document.getElementById('sea-layer').classList.remove('shake'), 600);
             
+            // 🌟 Phase 2: 狂暴狀態判定 (血量低於 50%)
+            if (!this.flags.bossPhase2 && this.bossHp < (this.bossMaxHp || 5000) * 0.5) {
+                this.flags.bossPhase2 = true;
+                this.notify('MODAL', { faceId: 'system', speaker: '警告', msg: '偵測到高能反應！克拉肯進入狂暴狀態！<br>攻擊頻率與傷害大幅提升！' });
+            }
+
             // 🌟 判定卡洛特的迴避技能
             if (this.flags.dodgeNext) {
                 this.notify('LOG', { msg: "💨 船隻靈巧地閃避了克拉肯的致命攻擊！", style: "color:var(--sonar); font-weight:bold;" });
                 this.flags.dodgeNext = false; // 消耗迴避狀態
+            } 
+            // 🌟 BOSS 蓄力釋放 (毀滅打擊)
+            else if (this.flags.bossCharging) {
+                this.notify('ALERT', { msg: "🦑 克拉肯釋放了【深淵死光】！船體嚴重受損！" });
+                this.hp -= 50; // 沒打斷的懲罰傷害
+                this.damageAllSan(40, "深淵死光");
+                this.fatigue += 30;
+                this.flags.bossCharging = false; // 釋放完畢
             } else {
-                let attacks = (typeof BOSS_DATA !== 'undefined' && BOSS_DATA.attacks) ? BOSS_DATA.attacks : [
-                    { msg: "巨大觸手猛烈拍擊船身！", effect: (g) => { g.hp -= 25; g.damageAllSan(15, "觸手拍擊"); } },
-                    { msg: "深淵凝視著你們的靈魂...", effect: (g) => { g.damageAllSan(30, "深淵凝視"); } },
-                    { msg: "刺耳的詭異咆哮聲響起！", effect: (g) => { g.damageAllSan(20, "克拉肯咆哮"); g.fatigue += 15; } }
-                ];
-                let attack = attacks[Math.floor(Math.random() * attacks.length)];
-                this.notify('ALERT', { msg: `🦑 ${attack.msg}` });
-                attack.effect(this);
+                // 🌟 AI 決策：隨機蓄力或普通攻擊
+                let roll = Math.random();
+                // 狂暴狀態下，蓄力機率提升 (30% vs 15%)
+                let chargeChance = this.flags.bossPhase2 ? 0.3 : 0.15;
+
+                if (roll < chargeChance) {
+                    this.flags.bossCharging = true;
+                    this.notify('ALERT', { msg: "⚠️ 克拉肯正在積蓄能量... (下回合釋放極大傷害！使用魚雷可打斷！)" });
+                } else {
+                    let attacks = BOSS_DATA.attacks;
+                    let attack = attacks[Math.floor(Math.random() * attacks.length)];
+                    
+                    // 狂暴狀態傷害倍率 1.5x
+                    let mult = this.flags.bossPhase2 ? 1.5 : 1.0;
+                    
+                    this.notify('ALERT', { msg: `🦑 ${attack.msg}` });
+                    attack.effect(this, mult);
+                }
+            }
+
+            // 🌟 Phase 2 被動：深淵再生 (每回合回血)
+            if (this.flags.bossPhase2 && !this.flags.bossCharging && this.bossHp > 0) {
+                this.bossHp = Math.min(this.bossMaxHp, this.bossHp + 50);
+                this.notify('LOG', { msg: "🦠 克拉肯的傷口正在癒合... (HP +50)", style: "color:#ef5350" });
+                document.getElementById('dist-display').innerText = Math.max(0, this.bossHp);
             }
         }
 
