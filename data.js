@@ -101,7 +101,7 @@ const DB = {
         { 
             id: 'narcissus', name: '納希瑟斯', role: 'CHARMER', cost: 450, 
             san: 65, maxSan: 65, trauma: null, region: 'unknown',
-            desc: '【主動】魅力交涉：推進 10 KM。<br>【被動】神仙顏值：解鎖特殊交涉選項。<br>【描述】美貌無雙的旅行者，外來人士，唯獨對維納托死心塌地。' 
+            desc: '【主動】魅力交涉：推進 20 KM。<br>【被動】神仙顏值：解鎖特殊交涉選項。<br>【描述】美貌無雙的旅行者，外來人士，唯獨對維納托死心塌地。' 
         },
         { 
             id: 'jornona', name: '喬諾娜', role: 'SINGER', cost: 300, 
@@ -111,7 +111,7 @@ const DB = {
         { 
             id: 'kleion', name: '克里昂', role: 'GHOST', cost: 250, 
             san: 100, maxSan: 100, trauma: null, region: 'sector7',
-            desc: '【主動】化學爆破：推進 10 KM，BOSS戰化學侵蝕。<br>【被動】幽靈同類：免疫靈異威脅。<br>【描述】死去的半精靈煉金術士。身為幽靈，他的 SAN 值永遠不會動搖。' 
+            desc: '【主動】化學爆破：推進 15 KM，BOSS戰化學侵蝕。<br>【被動】幽靈同類：免疫靈異威脅。<br>【描述】死去的半精靈煉金術士。身為幽靈，他的 SAN 值永遠不會動搖。' 
         },
         { 
             id: 'costa', name: '科絲塔', role: 'APPRENTICE', cost: 200, 
