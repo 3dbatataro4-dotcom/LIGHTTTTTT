@@ -38,6 +38,12 @@ Object.assign(window.game, {
         if (typeof CRISIS_DB !== 'undefined' && CRISIS_DB[id]) {
             if (!this.activeCrises.find(c => c.id === id)) {
                 let c = Object.assign({id: id}, CRISIS_DB[id]);
+                
+                // 🌟 修正：BOSS 戰時引擎過熱改為扣 HP，修正描述以免誤導
+                if (this.bossMode && id === 'engine_fire') {
+                    c.desc = "每回合 HP -15";
+                }
+
                 this.activeCrises.push(c);
                 this.log(`⚠ 警告：${c.name}！${c.desc}`, "color:var(--alert)");
                 this.renderCmds();
@@ -1096,8 +1102,8 @@ Object.assign(window.game, {
 
             // 🌟 Phase 2 被動：深淵再生 (每回合回血)
             if (this.flags.bossPhase2 && !this.flags.bossCharging && this.bossHp > 0) {
-                this.bossHp = Math.min(this.bossMaxHp, this.bossHp + 50);
-                this.notify('LOG', { msg: "🦠 克拉肯的傷口正在癒合... (HP +50)", style: "color:#ef5350" });
+                this.bossHp = Math.min(this.bossMaxHp, this.bossHp + 150);
+                this.notify('LOG', { msg: "🦠 克拉肯的傷口正在癒合... (HP +150)", style: "color:#ef5350" });
                 document.getElementById('dist-display').innerText = Math.max(0, this.bossHp);
             }
         }
