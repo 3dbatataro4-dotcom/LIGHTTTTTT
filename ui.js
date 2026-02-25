@@ -27,8 +27,8 @@ Object.assign(window.game, {
             this.inTownMap = true;
             const isNight = this.hour >= 18 || this.hour < 6;
             const lightOp = isNight ? 0.9 : 0; // 燈光透明度 (白天為0)
-            // 優化：夜晚使用徑向漸層，周圍更暗，中心稍亮
-            const nightOverlay = isNight ? `<rect width="100%" height="100%" fill="url(#night-gradient)" style="pointer-events:none;" />` : '';
+            // 🌟 優化：改為 HTML 層級的覆蓋，避免 SVG 縮放導致遮罩穿幫
+            const nightOverlayHtml = isNight ? `<div style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:5; background: radial-gradient(circle at center, rgba(20, 35, 60, 0.3) 0%, rgba(0, 5, 15, 0.95) 100%); mix-blend-mode: multiply;"></div>` : '';
             
             // 新增：通關後顯示廢棄住所
             let residenceHtml = '';
@@ -45,6 +45,7 @@ Object.assign(window.game, {
 
             mainContent.innerHTML = `
                 <div class="holo-container">
+                    ${nightOverlayHtml}
                     <div style="position:absolute; top:10px; right:10px; z-index:100;">
                         <button class="tech-btn" style="width:auto; padding:8px 15px; border-color:#90a4ae; color:#90a4ae; background:rgba(0,0,0,0.8);" onclick="game.openTab('system')">💾 系統</button>
                     </div>
@@ -54,13 +55,14 @@ Object.assign(window.game, {
                         <svg viewBox="0 0 900 700">
                             <defs>
                                 <pattern id="grid" x="0" y="20" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--sonar)" stroke-opacity="0.15" stroke-width="1"/></pattern>
-                                <!-- 優化：燈光暈染濾鏡 -->
-                                <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.5" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-                                <!-- 優化：夜晚漸層 -->
-                                <radialGradient id="night-gradient" cx="50%" cy="50%" r="80%"><stop offset="0%" stop-color="rgba(0, 10, 30, 0.3)" /><stop offset="100%" stop-color="rgba(0, 5, 15, 0.9)" /></radialGradient>
+                                <!-- 優化：更細緻的多層輝光濾鏡 -->
+                                <filter id="glow" x="-100%" y="-100%" width="300%" height="300%">
+                                    <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur1" />
+                                    <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur2" />
+                                    <feMerge><feMergeNode in="blur2" /><feMergeNode in="blur1" /><feMergeNode in="SourceGraphic" /></feMerge>
+                                </filter>
                             </defs>
                             <rect width="100%" height="100%" fill="url(#grid)" />
-                            ${nightOverlay}
                             
                             <!-- 裝飾：海浪 (北方海域) -->
                             <path d="M 0 40 Q 50 10 100 40 T 200 40 T 300 40 T 400 40 T 500 40 T 600 40 T 700 40 T 800 40 T 900 40" fill="none" stroke="var(--sonar)" stroke-opacity="0.2" stroke-width="1" />
@@ -113,9 +115,11 @@ Object.assign(window.game, {
                                 <text class="building-label" x="0" y="55" text-anchor="middle" font-size="24">🎰 賭場 (CASINO)</text>
                             </g>
                             <g class="building-group" transform="translate(80, 350)" onclick="game.travelTo('blackmarket')" data-desc="🕵️ 黑市：稀有違禁品">
-                                <path class="map-building" d="M -30 0 L 30 0 L 0 -50 Z" fill="#333" stroke="var(--purple)" />
-                                <rect x="-10" y="-20" width="20" height="20" fill="var(--purple)" opacity="${lightOp}" filter="url(#glow)" />
-                                <text class="building-label" x="0" y="40" text-anchor="middle" font-size="24" fill="var(--purple)">🕵️ 黑市 (MARKET)</text>
+                                <!-- 🌟 優化：黑市造型改為地下碉堡風格，避免看起來像黑色色塊 -->
+                                <path class="map-building" d="M -35 0 L -25 -30 L 25 -30 L 35 0 Z" fill="rgba(30, 10, 40, 0.9)" stroke="var(--purple)" stroke-width="2" />
+                                <path d="M -15 -30 L -15 -50 M 15 -30 L 15 -50" stroke="var(--purple)" stroke-width="1" />
+                                <rect x="-20" y="-20" width="40" height="10" fill="var(--purple)" opacity="${lightOp}" filter="url(#glow)" />
+                                <text class="building-label" x="0" y="45" text-anchor="middle" font-size="24" fill="var(--purple)">🕵️ 黑市 (MARKET)</text>
                             </g>
                             <g class="building-group" transform="translate(450, 70)" onclick="game.travelTo('port')">
                                 <path class="map-building" d="M -50 0 L 50 0 L 40 30 L -40 30 Z" />
@@ -123,6 +127,7 @@ Object.assign(window.game, {
                                 <circle cx="0" cy="-35" r="4" fill="#FF5252" opacity="${isNight ? 1 : 0.2}" filter="url(#glow)" class="b-light" />
                                 <text class="building-label" x="0" y="55" text-anchor="middle">⚓ 港口 (PORT)</text>
                             </g>
+                            
                             <text x="450" y="680" fill="var(--sonar)" font-size="18" text-anchor="middle" letter-spacing="5px" opacity="0.5" style="pointer-events:none;">SECTOR-7 PORT HOLOMAP</text>
                         </svg>
                     </div>
