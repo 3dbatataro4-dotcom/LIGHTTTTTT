@@ -10,7 +10,8 @@ const LOCATIONS = {
     'inn': { x: 200, y: 550, name: '旅館' },
     'warehouse': { x: 820, y: 350, name: '倉庫' },
     'casino': { x: 700, y: 550, name: '賭場' },
-    'blackmarket': { x: 80, y: 350, name: '黑市' }
+    'blackmarket': { x: 80, y: 350, name: '黑市' },
+    'residence': { x: 650, y: 100, name: '廢棄住所' }
 };
 
 Object.assign(window.game, {
@@ -28,6 +29,19 @@ Object.assign(window.game, {
             const lightOp = isNight ? 0.9 : 0; // 燈光透明度 (白天為0)
             // 優化：夜晚使用徑向漸層，周圍更暗，中心稍亮
             const nightOverlay = isNight ? `<rect width="100%" height="100%" fill="url(#night-gradient)" style="pointer-events:none;" />` : '';
+            
+            // 新增：通關後顯示廢棄住所
+            let residenceHtml = '';
+            if (this.flags && this.flags.victory) {
+                residenceHtml = `
+                    <path class="map-line" d="M 650 100 L 700 200" stroke-dasharray="5,5" opacity="0.5" />
+                    <g class="building-group" transform="translate(650, 100)" onclick="game.travelTo('residence')" data-desc="🏚️ 廢棄住所：曾經的豪宅">
+                        <path class="map-building" d="M -30 0 L 0 -30 L 30 0 L 20 0 L 20 30 L -20 30 L -20 0 Z" />
+                        <rect x="-8" y="10" width="16" height="20" fill="none" stroke="var(--sonar)" stroke-width="1" opacity="0.5" />
+                        <text class="building-label" x="0" y="60" text-anchor="middle" font-size="20" fill="#777">🏚️ 住所 (HOME)</text>
+                    </g>
+                `;
+            }
 
             mainContent.innerHTML = `
                 <div class="holo-container">
@@ -54,6 +68,7 @@ Object.assign(window.game, {
 
                             <!-- 道路連接線 -->
                             <path class="map-line" d="M 450 70 L 450 350 M 200 200 L 450 350 L 700 200 M 200 550 L 450 350 L 700 550 M 450 350 L 450 600 M 200 200 L 200 550 M 700 200 L 700 550 M 700 200 L 820 350 L 700 550 M 80 350 L 200 200 M 80 350 L 200 550" />
+                            ${residenceHtml}
                             
                             <!-- 中心裝飾 -->
                             <circle cx="450" cy="350" r="60" fill="none" stroke="var(--sonar)" stroke-opacity="0.3" stroke-width="2" />
@@ -432,6 +447,17 @@ Object.assign(window.game, {
                     <div class="card-header"><span class="card-title">導入繼承碼</span></div>
                     <div class="card-body">貼上代碼以恢復進度。</div>
                     <button class="tech-btn" style="margin-top:10px; border-color:var(--sonar); color:var(--sonar);" onclick="game.importSave()">輸入代碼</button>
+                </div>
+            </div>`;
+        } else if (tabId === 'residence') {
+            html = backBtn + `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#777;">
+                <div style="font-size:5rem; margin-bottom:20px; opacity:0.5;">🏚️</div>
+                <h2 style="color:#555; margin:0 0 10px 0;">廢棄的住所</h2>
+                <p>這棟建築看起來荒廢已久，但結構依然完好。</p>
+                <p>門上掛著一個牌子：<span style="color:var(--alert)">【暫不開放】</span></p>
+                <div style="margin-top:30px; font-size:0.8rem; border:1px dashed #333; padding:10px; background:rgba(0,0,0,0.2);">
+                    即將推出：玩家房屋系統<br>
+                    (可花費高額資金購買並裝修)
                 </div>
             </div>`;
         }
