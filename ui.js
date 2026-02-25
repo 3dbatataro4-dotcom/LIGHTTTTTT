@@ -31,6 +31,9 @@ Object.assign(window.game, {
 
             mainContent.innerHTML = `
                 <div class="holo-container">
+                    <div style="position:absolute; top:10px; right:10px; z-index:100;">
+                        <button class="tech-btn" style="width:auto; padding:8px 15px; border-color:#90a4ae; color:#90a4ae; background:rgba(0,0,0,0.8);" onclick="game.openTab('system')">💾 系統</button>
+                    </div>
                     <div id="map-tooltip" style="position:absolute; display:none; background:rgba(0,0,0,0.9); border:1px solid var(--sonar); padding:8px 12px; color:#fff; z-index:20; pointer-events:none; font-size:0.9rem; border-radius:4px; box-shadow:0 0 10px var(--sonar-dim); white-space:nowrap;"></div>
                     <div class="scanline"></div>
                     <div class="map-layer">
@@ -136,7 +139,7 @@ Object.assign(window.game, {
         }
         
         this.inTownMap = false;
-        this.stopWeather(); // 強制停止天氣特效
+        this.stopWeather();
 
         // 計算距離並轉換為消耗 (每100px = 0.2小時, 2疲勞)
         const dist = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
@@ -207,15 +210,14 @@ Object.assign(window.game, {
                     <div class="card-body">檢視遭遇過的深海生物與異常。</div>
                     <div style="color:var(--sonar); font-size:0.8rem; text-align:right;">點擊進入 &rarr;</div>
                 </div>
-                <div class="tech-card" style="cursor:pointer; border-color:#90a4ae;" onclick="game.saveGame()">
-                    <div class="card-header"><span class="card-title" style="font-size:1.2rem; color:#90a4ae;">💾 系統存檔</span></div>
+                <div class="tech-card" style="cursor:pointer; border-color:#90a4ae;" onclick="game.openTab('system')">
+                    <div class="card-header"><span class="card-title" style="font-size:1.2rem; color:#90a4ae;">💾 系統核心</span></div>
                     <div class="card-body">保存進度或調整設定。</div>
                     <div style="color:#90a4ae; font-size:0.8rem; text-align:right;">點擊進入 &rarr;</div>
                 </div>
             </div>
             <button class="btn-launch" style="width:100%; margin:20px 0 0 0; padding:20px; font-size:1.5rem;" onclick="game.checkLaunch()">🚀 啟動引擎出航</button>
         `;
-        this.updateUI();
     },
 
     updateUI: function() {
@@ -266,15 +268,12 @@ Object.assign(window.game, {
     // --- 核心 UI 渲染 (openTab) ---
     openTab: function(tabId) {
         this.inTownMap = false;
-        this.stopWeather(); // 切換分頁時強制停止天氣特效
+        this.stopWeather();
         const content = document.getElementById('main-content');
         let html = '';
         let backBtn = '';
-        if (['crew', 'codex'].includes(tabId)) {
-            backBtn = `<button class="tech-btn" style="margin-bottom:15px; width:auto; padding:8px 15px; border-color:#555; color:#aaa;" onclick="game.openShipMenu()">⬅ 返回主控台</button>`;
-        } else {
-            backBtn = `<button class="tech-btn" style="margin-bottom:15px; width:auto; padding:8px 15px; border-color:var(--sonar); color:var(--sonar);" onclick="game.switchMode('town')">⬅ 返回小鎮地圖</button>`;
-        }
+        let backFn = this.isVoyaging ? "game.openShipMenu()" : "game.switchMode('town')";
+        backBtn = `<button class="tech-btn" style="margin-bottom:15px; width:auto; padding:8px 15px; border-color:#555; color:#aaa;" onclick="${backFn}">⬅ 返回</button>`;
 
         if (tabId === 'hall') {
             let maxCrew = this.crewMax >= 8; let maxFood = this.maxFood >= 300; let maxFuel = this.maxFuel >= 300;
@@ -361,7 +360,21 @@ Object.assign(window.game, {
                 return;
             }
             let chatBtn = (this.flags && this.flags.victory) ? `<button class="tech-btn" style="width:100%; margin-bottom:15px; border-color:var(--gold); color:var(--gold);" onclick="game.startChat('nathanael_win')">💬 與拿但業閒聊 (通關)</button>` : ``;
-            html = backBtn + this.npcHtml('nathanael') + chatBtn + `<h3 style="color:var(--gold); margin-top:0; border-bottom:1px dashed #333; padding-bottom:10px;">🎰 貴賓廳</h3><div class="tech-card" style="border-color:var(--gold);"><div class="card-header"><span class="card-title">水手賭局</span></div><div class="card-body">覺得運氣不錯？和那些醉鬼玩兩把骰子吧。<br><span style="font-size:0.8rem; color:#aaa;">(拿但業正饒有興致地看著你)</span></div><button class="tech-btn" style="border-color:var(--gold); color:var(--gold); margin-top:10px; width:100%;" onclick="game.openGambleUI()">加入賭局</button></div>
+            
+            // 優化：沒錢時禁用賭博按鈕
+            let gambleBtn = this.money > 0 ? `<button class="tech-btn" style="border-color:var(--gold); color:var(--gold); margin-top:10px; width:100%;" onclick="game.openGambleUI()">加入賭局</button>` : `<button class="tech-btn" style="border-color:#555; color:#777; margin-top:10px; width:100%; cursor:not-allowed;" disabled>沒錢</button>`;
+            let slotsBtn = this.money > 0 ? `<button class="tech-btn" style="border-color:#e91e63; color:#e91e63; margin-top:10px; width:100%;" onclick="game.openSlotsUI()">試試手氣</button>` : `<button class="tech-btn" style="border-color:#555; color:#777; margin-top:10px; width:100%; cursor:not-allowed;" disabled>沒錢</button>`;
+            let bjBtn = this.money > 0 ? `<button class="tech-btn" style="border-color:var(--purple); color:var(--purple); margin-top:10px; width:100%;" onclick="game.openBlackjackUI()">挑戰莊家</button>` : `<button class="tech-btn" style="border-color:#555; color:#777; margin-top:10px; width:100%; cursor:not-allowed;" disabled>沒錢</button>`;
+
+            html = backBtn + this.npcHtml('nathanael') + chatBtn + `<h3 style="color:var(--gold); margin-top:0; border-bottom:1px dashed #333; padding-bottom:10px;">🎰 貴賓廳</h3>
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="tech-card" style="border-color:var(--gold);"><div class="card-header"><span class="card-title">🎲 水手骰子</span></div><div class="card-body">簡單的比大小。<br><span style="font-size:0.8rem; color:#aaa;">勝率 50% | 賠率 2x</span></div>${gambleBtn}</div>
+                <div class="tech-card" style="border-color:#e91e63;"><div class="card-header"><span class="card-title">🎰 深海拉霸</span></div><div class="card-body">高風險高回報。<br><span style="font-size:0.8rem; color:#aaa;">最高賠率 1000x</span></div>${slotsBtn}</div>
+                <div class="tech-card" style="border-color:var(--purple); grid-column: 1 / -1;">
+                    <div class="card-header"><span class="card-title">🃏 21點 (Blackjack)</span></div>
+                    <div class="card-body">與拿但業的正面對決。<br><span style="font-size:0.8rem; color:#aaa;">戰勝莊家 | 賠率 2x (BJ 2.5x)</span></div>${bjBtn}
+                </div>
+            </div>
             <div class="tech-card" style="border-color:var(--alert); margin-top:15px;">
                 <div class="card-header"><span class="card-title" style="color:var(--alert)">💰 資金周轉</span></div>
                 <div class="card-body">手頭緊？拿但業可以提供一些... 幫助。<br><span style="font-size:0.8rem; color:#aaa;">(當前債務: <span style="color:var(--alert)">$${this.debt || 0}</span> | 日利息: 10%)</span></div>
@@ -397,9 +410,33 @@ Object.assign(window.game, {
             if (zoneFish.length === 0) html += `<div style="grid-column:1/-1; text-align:center; color:#555; padding:30px;">此區域尚無已知生物數據。</div>`;
             else { zoneFish.forEach(k => { let isUnlocked = this.codex.includes(k); if(isUnlocked) unlockedCount++; let f = ITEM_DB[k]; if (isUnlocked) { html += `<div class="tech-card" style="border-color:var(--sonar);"><div class="card-header" style="justify-content:flex-start; gap:15px; border-bottom:none; margin-bottom:0; padding-bottom:0;"><div style="font-size:2rem; background:rgba(0,176,255,0.1); width:50px; height:50px; display:flex; align-items:center; justify-content:center; border-radius:8px; border:1px solid var(--sonar);">${f.icon}</div><div><div style="color:var(--sonar); font-weight:bold; font-size:1.1rem;">${f.name}</div><div style="color:var(--gold); font-size:0.8rem;">售價: $${f.value}</div></div></div><div class="card-body" style="color:#aaa; font-size:0.9rem; margin-top:10px;">${f.desc}</div></div>`; } else { html += `<div class="tech-card" style="border-color:#333; opacity:0.6;"><div class="card-header" style="justify-content:flex-start; gap:15px; border-bottom:none; margin-bottom:0; padding-bottom:0;"><div style="font-size:2rem; background:#111; width:50px; height:50px; display:flex; align-items:center; justify-content:center; border-radius:8px; border:1px dashed #555; color:#555;">?</div><div><div style="color:#777; font-weight:bold; font-size:1.1rem;">未知的漁獲</div><div style="color:#555; font-size:0.8rem;">棲息於${this.codexPage}</div></div></div><div class="card-body" style="color:#555; font-size:0.9rem; margin-top:10px;">尚未解鎖此圖鑑。</div></div>`; } }); }
             html += `</div><div style="margin-top:20px; text-align:center; color:#aaa; font-size:0.9rem;">總收集進度: ${unlockedCount} / ${fishKeys.length}</div>`;
+        } else if (tabId === 'system') {
+            html = backBtn + `<h2 style="color:#90a4ae; border-bottom:1px dashed #333; padding-bottom:10px; margin-top:0;">💾 系統核心</h2>
+            <div class="grid">
+                <div class="tech-card" style="border-color:#90a4ae;">
+                    <div class="card-header"><span class="card-title">本機存檔</span></div>
+                    <div class="card-body">將進度保存在此瀏覽器中。</div>
+                    <button class="tech-btn" style="margin-top:10px; border-color:#90a4ae; color:#90a4ae;" onclick="game.saveGame()">執行存檔</button>
+                </div>
+                <div class="tech-card" style="border-color:#90a4ae;">
+                    <div class="card-header"><span class="card-title">本機讀取</span></div>
+                    <div class="card-body">讀取此瀏覽器的存檔。</div>
+                    <button class="tech-btn" style="margin-top:10px; border-color:#90a4ae; color:#90a4ae;" onclick="game.loadGame()">讀取進度</button>
+                </div>
+                <div class="tech-card" style="border-color:var(--gold);">
+                    <div class="card-header"><span class="card-title">導出繼承碼</span></div>
+                    <div class="card-body">生成一串代碼，可用於備份或轉移存檔。</div>
+                    <button class="tech-btn" style="margin-top:10px; border-color:var(--gold); color:var(--gold);" onclick="game.exportSave()">複製代碼</button>
+                </div>
+                <div class="tech-card" style="border-color:var(--sonar);">
+                    <div class="card-header"><span class="card-title">導入繼承碼</span></div>
+                    <div class="card-body">貼上代碼以恢復進度。</div>
+                    <button class="tech-btn" style="margin-top:10px; border-color:var(--sonar); color:var(--sonar);" onclick="game.importSave()">輸入代碼</button>
+                </div>
+            </div>`;
         }
         content.innerHTML = html;
-        this.updateUI();
+        this.updateUI(); // 修正：切換分頁後立即更新 UI，確保天氣特效能偵測到離開地圖而停止
     },
 
     // --- 輔助渲染函數 ---
