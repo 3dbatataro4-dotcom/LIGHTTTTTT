@@ -9,6 +9,37 @@
     <link rel="icon" href="https://file.garden/aWe99vhwaGcNwkok/%E6%B7%B1%E6%B5%B7%E8%BF%B7%E8%88%AA/item_1.png">
     <link rel="apple-touch-icon" href="https://file.garden/aWe99vhwaGcNwkok/%E6%B7%B1%E6%B5%B7%E8%BF%B7%E8%88%AA/item_1.png">
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* 移動端適配修正 */
+        @media (max-width: 768px) {
+            .dashboard-main {
+                flex-direction: column;
+            }
+            .dashboard-main > div {
+                border-right: none !important;
+                border-bottom: 1px solid #2c3e50;
+                padding-right: 0 !important;
+                padding-bottom: 15px;
+                margin-bottom: 15px;
+            }
+            .sys-log {
+                height: 150px; /* 限制日誌高度，避免佔滿手機螢幕 */
+                min-height: 100px;
+            }
+            .action-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); /* 讓按鈕在小螢幕自動換行 */
+            }
+            .status-grid {
+                gap: 5px;
+            }
+            .stat-block {
+                padding: 5px;
+            }
+            .stat-val {
+                font-size: 1rem;
+            }
+        }
+    </style>
 </head>
 <body>
     <div id="title-layer" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:9999; background:var(--bg-deep); display:flex; flex-direction:column; justify-content:center; align-items:center; background-image: radial-gradient(circle, rgba(0, 176, 255, 0.1) 0%, rgba(0,0,0,1) 80%);">
@@ -52,6 +83,7 @@
     </div>
 
     <div id="sea-layer" style="display:none;">
+        <div id="boss-noise" class="crt-noise"></div>
         <div class="sonar-display">
             <div class="ocean-waves"></div>
             
@@ -108,6 +140,30 @@
         </div>
     </div>
 
+    <!-- 🌟 新增：捕魚專用圖層 (獨立 UI) -->
+    <div id="fishing-layer" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:#020609; flex-direction:column; z-index:60;">
+        <!-- 捕魚地圖顯示區 -->
+        <div id="fishing-map-container" class="holo-container" style="flex:1; border:none; border-bottom:2px solid var(--border); border-radius:0;">
+            <!-- SVG 地圖將由 JS 注入這裡 -->
+        </div>
+
+        <!-- 底部儀表板 (類似出航) -->
+        <div class="control-panel" style="height:auto; min-height:200px; padding:15px; background:#03080c;">
+            <div class="dashboard-main" style="grid-template-columns: 1fr 1fr; gap:20px;">
+                <div style="border-right:1px solid #2c3e50; padding-right:15px;">
+                    <div style="color:var(--gold); font-size:0.85rem; margin-bottom:10px; letter-spacing:1px;">SHIP STATUS</div>
+                    <div class="bar-container"><div class="bar-label"><span>FUEL</span><span id="fish-bar-fuel-txt">100/100</span></div><div class="bar-track"><div class="bar-val" id="fish-bar-fuel" style="width:100%; background:var(--gold)"></div></div></div>
+                    <div class="bar-container"><div class="bar-label"><span>FOOD</span><span id="fish-bar-food-txt">100/100</span></div><div class="bar-track"><div class="bar-val" id="fish-bar-food" style="width:100%; background:var(--sonar)"></div></div></div>
+                    <div class="bar-container"><div class="bar-label"><span>FATIGUE</span><span id="fish-bar-fat-txt">0/100</span></div><div class="bar-track"><div class="bar-val" id="fish-bar-fat" style="width:0%; background:var(--alert)"></div></div></div>
+                </div>
+                <div style="display:flex; flex-direction:column; justify-content:center; gap:10px;">
+                    <button class="cmd-btn" style="border-color:var(--purple); background:rgba(206, 147, 216, 0.1); justify-content:center;" onclick="game.openBackpack()"><div style="font-size:1.5rem;">🎒</div><div class="cmd-name">打開背包</div></button>
+                    <button class="cmd-btn" style="border-color:var(--gold); background:rgba(255, 202, 40, 0.1); justify-content:center;" onclick="game.returnFromFishing()"><div style="font-size:1.5rem;">⚓</div><div class="cmd-name">返回港口</div></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="modal-overlay" style="display:none;">
         <div class="modal-box">
             <div class="comm-log">
@@ -142,6 +198,8 @@
 
     <script src="data.js"></script>
     <script src="stages.js"></script>
+    <script src="town.js"></script>
+    <script src="ui.js"></script>
     <script src="engine.js"></script>
     
     <script>
