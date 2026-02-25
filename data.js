@@ -50,7 +50,8 @@ const WEATHER_TYPES = {
     'TAILWIND': { name: '順風', icon: '🍃', desc: '航速 +20%' },
     'HEADWIND': { name: '逆風', icon: '💨', desc: '航速 -20%' },
     'STORM': { name: '暴雨', icon: '⛈', desc: '船體受損' },
-    'FOG': { name: '濃霧', icon: '🌫', desc: '油耗增加' }
+    'FOG': { name: '濃霧', icon: '🌫', desc: '油耗增加' },
+    'RAIN': { name: '小雨', icon: '🌧️', desc: '漁獲率提升' }
 };
 
 // 角色與NPC資料庫
@@ -59,54 +60,54 @@ const DB = {
         { 
             id: 'novian', name: '諾維安', role: 'CAPTAIN', 
             san: 80, maxSan: 80, trauma: null, region: 'sector7',
-            desc: '【主動】全速推進：額外推進 15 KM。<br>【被動】第七星區適應：航行時較不易累積疲勞。<br>【描述】陽光開朗的第七星區船長，高抗壓性，能在高壓戰鬥中穩定軍心。' 
+            desc: '【主動】全速推進：額外推進 15 KM。<br>【被動】老練航海家：每回合航行累積的疲勞值降低 (10&rarr;7)。<br>【描述】陽光開朗的船長。有他在，船員們會感到比較安心，疲勞累積較慢。' 
         },
         { 
             id: 'lanlan', name: '維爾德拉科斯(蘭蘭)', role: 'GUARD', 
             san: 40, maxSan: 40, trauma: null, region: 'sector7',
-            desc: '【主動】斬擊/物資：找回 20 FOOD，戰鬥中對巨型觸手造成毀滅傷害。<br>【被動】怕鬼：20%機率被嚇到 SAN-10。<br>【描述】武力極高的純情龍族，物理輸出頂尖，但精神極易崩潰。' 
+            desc: '【主動】龍族怪力：找回 20 FOOD。BOSS 戰造成 100 點傷害。<br>【被動】怕鬼：行動時有 20% 機率被嚇到 (SAN-10)。<br>【描述】物理輸出頂尖的龍族，但精神極易崩潰。需要喬諾娜在身邊安撫。' 
         },
         { 
             id: 'lazar', name: '拉扎爾', role: 'MEDIC', 
             san: 85, maxSan: 85, trauma: null, region: 'sector7',
-            desc: '【主動】心理疏導：全體 SAN 恢復 20。<br>【描述】語氣溫和的船醫。面對舊日支配者的精神汙染時，他是全船的理智保底。' 
+            desc: '【主動】心理疏導：全體 SAN 恢復 20。<br>【被動】心理醫生：排除【深海幻音】危機時 AP 消耗減半。<br>【描述】語氣溫和的船醫。面對精神汙染危機時，他是最可靠的後盾。' 
         }
     ],
     mercs: [
         { 
             id: 'carlota', name: '卡洛特', role: 'SCOUT', cost: 200, 
             san: 70, maxSan: 70, trauma: null, region: 'sector7',
-            desc: '【主動】規避暗礁：推進 15 KM。<br>【被動】危險直覺：可在部分危機中提前預警。<br>【描述】諾維安的弟弟。能敏銳避開深海的環境陷阱。' 
+            desc: '【主動】規避暗礁：推進 15 KM。<br>【被動】危險直覺：遭遇【暴風雨】節點時，可完全避免船體受損。<br>【描述】諾維安的弟弟。能敏銳避開深海的環境陷阱。' 
         },
         { 
             id: 'estrella', name: '星星', role: 'ENGINEER', cost: 200, 
             san: 60, maxSan: 60, trauma: null, region: 'sector7',
-            desc: '【主動】萬能維修：船體 HP 恢復 15 點。<br>【被動】技工：可處理機械危機。<br>【描述】可愛的萬能雜工，BOSS 戰中搶修船體的關鍵人物。' 
+            desc: '【主動】萬能維修：船體 HP 恢復 15 點。<br>【被動】工程師：排除【引擎/進水】危機時 AP 消耗減半。<br>【描述】專業的工程師，理智較高(60)。面對機械故障時能迅速解決，是性價比極高的選擇。' 
         },
         { 
             id: 'philip', name: '腓力', role: 'BRAWLER', cost: 250, 
             san: 75, maxSan: 75, trauma: null, region: 'sector7',
-            desc: '【主動】暴力破障：額外推進 20 KM，BOSS戰重火力轟炸。<br>【被動】苦力：可處理勞力危機。<br>【描述】率直忠誠的保母兼打手，專門粉碎深海巨獸的重甲。' 
+            desc: '【主動】暴力破障：推進 20 KM。BOSS 戰造成 150 點傷害。<br>【被動】苦力：排除【船艙進水】危機時 AP 消耗減半。<br>【描述】率直忠誠的保母兼打手，專門處理需要蠻力的危機。' 
         },
         { 
             id: 'nathanael', name: '拿但業', role: 'NOBLE', cost: 350, 
             san: 50, maxSan: 50, trauma: null, region: 'sector7',
-            desc: '【主動】絕對命令：指揮特定隊友進行極限爆發；若無人可用則會偷懶。<br>【描述】嬌氣的少爺。雖然體質很雖，但他能讓腓力的破壞力引導至極限。' 
+            desc: '【主動】絕對命令：若腓力在場，推進 35 KM (BOSS戰 300 傷害)。<br>【被動】貴族特權：刷新公會/酒館的費用減半 ($25)。<br>【描述】嬌氣的少爺。雖然戰鬥力為零，但有他在，辦事總是有特權。' 
         },
         { 
             id: 'venator', name: '維納托', role: 'GENIUS', cost: 500, 
             san: 95, maxSan: 95, trauma: null, region: 'unknown', // 🌟 已更改為外來者
-            desc: '【主動】機械軍團：穩定推進 15 KM，精準鎖定敵方弱點。<br>【描述】自信從容的機關學者。強大的理性讓他幾乎免疫深淵的精神汙染。' 
+            desc: '【主動】機械軍團：推進 15 KM。BOSS 戰時造成 120 點精準傷害。<br>【被動】絕對理性：受到的所有 SAN 值傷害減半。<br>【描述】自信從容的機關學者。強大的理性讓他幾乎免疫深淵的精神汙染。' 
         },
         { 
             id: 'narcissus', name: '納希瑟斯', role: 'CHARMER', cost: 450, 
             san: 65, maxSan: 65, trauma: null, region: 'unknown',
-            desc: '【主動】魅力交涉：推進 20 KM。<br>【被動】神仙顏值：解鎖特殊交涉選項。<br>【描述】美貌無雙的旅行者，外來人士，唯獨對維納托死心塌地。' 
+            desc: '【主動】魅力交涉：推進 20 KM，並使全體疲勞 -10。<br>【被動】神仙顏值：在特定隨機事件中解鎖「特殊選項」。<br>【描述】美貌無雙的旅行者。他的存在本身就能讓船員感到放鬆。' 
         },
         { 
             id: 'jornona', name: '喬諾娜', role: 'SINGER', cost: 300, 
             san: 70, maxSan: 70, trauma: null, region: 'sector7',
-            desc: '【主動】海妖之歌：全體 SAN 恢復 15。<br>【描述】蘭蘭的戀人。溫柔的歌聲能有效抵禦海怪的深海低語。' 
+            desc: '【主動】海妖之歌：全體 SAN 恢復 15。<br>【被動】歌姬：排除【深海幻音】危機時 AP 消耗減半。<br>【描述】蘭蘭的戀人。溫柔的歌聲能有效抵禦海怪的深海低語。' 
         },
         { 
             id: 'kleion', name: '克里昂', role: 'GHOST', cost: 250, 
@@ -116,7 +117,7 @@ const DB = {
         { 
             id: 'costa', name: '科絲塔', role: 'APPRENTICE', cost: 200, 
             san: 55, maxSan: 55, trauma: null, region: 'sector7',
-            desc: '【主動】奈米修復：船體 HP 恢復 15 點。<br>【描述】善良可愛的小女孩，克里昂的夥伴，能靈巧地在危急時刻修補船艙。' 
+            desc: '【主動】奈米修復：船體 HP 恢復 15 點。<br>【被動】機修天賦：雖然沒有工程師執照(無法減免危機AP)，但修復船體的能力與星星完全相同。<br>【描述】克里昂的助手，擅長精細的機械維護。' 
         },
         { 
             id: 'manmu', name: '小目', role: 'CEO', cost: 600, 
@@ -126,7 +127,7 @@ const DB = {
         { 
             id: 'molly', name: '茉莉', role: 'DOCTOR', cost: 300, 
             san: 60, maxSan: 60, trauma: null, region: 'sector7',
-            desc: '【主動】強效急救：船體 HP+10，全體 SAN+10。<br>【描述】溫柔的醫生。全能型的後勤輔助，確保船員在決戰中不會倒下。' 
+            desc: '【主動】強效急救：船體 HP+10，全體 SAN+10。<br>【被動】戰地醫師：排除【深海幻音】危機時 AP 消耗減半。<br>【描述】溫柔的醫生。全能型的後勤輔助，確保船員在決戰中不會倒下。' 
         }
     ],
     npc: {
@@ -164,7 +165,17 @@ const DB = {
             victoryMsg: '沒想到你居然真的打敗了海怪！不愧是我看上的人才！從今天起，小鎮倉庫為你提供至尊 VIP 服務！這可是無價的喔！'
         },
         seagod: { name: '海神', id: 'seagod', msg: '哇！是沒看過的魚！大黑你看！' },
-        hades: { name: '冥神', id: 'hades', msg: '...嗯。(抱緊浮板)' }
+        hades: { name: '冥神', id: 'hades', msg: '...嗯。(抱緊浮板)' },
+        nathanael: { 
+            name: '拿但業 (賭場)', id: 'nathanael', 
+            msg: '運氣？那只是窮人的藉口。在這裡，機率是可以被「買」下來的。',
+            victoryMsg: '看來你打破了莊家的優勢。哼，這點小錢就當作是給英雄的賞賜吧。'
+        },
+        molly: {
+            name: '茉莉 (黑市)', id: 'molly',
+            msg: '「這裡有些... 醫療物資。雖然來源不便透露，但或許能救你們一命。」',
+            victoryMsg: '「大家都平安無事真是太好了。這些『特殊藥品』看來以後用不到了呢。」'
+        }
     },
     generators: {
         issuers: ['小目', '海神', '克里昂', '林恩', '神秘人', '喬諾娜'],
@@ -186,6 +197,30 @@ const SYNERGY_DB = [
         members: ["喬諾娜", "蘭蘭"],
         icon: "💖",
         desc: "喬諾娜的歌聲能安撫蘭蘭的不安。<br><span style='color:var(--gold)'>效果：蘭蘭的被動負面特質【怕鬼】完全失效。</span><br><span style='color:#777'>蘭蘭不再會因為幻覺而拒絕行動或扣除 SAN 值。</span>"
+    },
+    {
+        name: "兄弟同心 (Brotherhood)",
+        members: ["諾維安", "卡洛特"],
+        icon: "⚓",
+        desc: "諾維安與卡洛特兄弟齊心，默契無間。<br><span style='color:var(--gold)'>效果：諾維安的【全速推進】距離提升至 25KM。</span>"
+    },
+    {
+        name: "靈魂共鳴 (Soul Resonance)",
+        members: ["克里昂", "科絲塔"],
+        icon: "👻",
+        desc: "科絲塔與克里昂的靈魂連結。<br><span style='color:var(--gold)'>效果：科絲塔的【奈米修復】效果大幅提升 (HP +25)。</span>"
+    },
+    {
+        name: "總裁的守護 (CEO's Aegis)",
+        members: ["小目", "茉莉"],
+        icon: "💎",
+        desc: "為了保護心愛的芒果(茉莉)，小目會提供無限的資源支持。<br><span style='color:var(--gold)'>效果：茉莉的【強效急救】效果翻倍 (HP+20, SAN+20)。</span>"
+    },
+    {
+        name: "機械與美學 (Logic & Beauty)",
+        members: ["維納托", "納希瑟斯"],
+        icon: "🌹",
+        desc: "納希瑟斯的存在讓維納托的邏輯運算更加瘋狂。<br><span style='color:var(--gold)'>效果：維納托的【機械軍團】在 BOSS 戰中傷害提升至 180。</span>"
     }
 ];
 
@@ -245,6 +280,7 @@ const CRISIS_DB = {
         name: "引擎過熱", 
         desc: "每回合 Fuel -15 (BOSS戰: HP -15)", 
         roles: ['ENGINEER', 'ANDROID'], // 星星或科絲塔可以快速解決
+        roles: ['ENGINEER', 'ANDROID', 'APPRENTICE'], // 修正：加入 APPRENTICE 讓科絲塔也能快速解決
         penalty: (game) => { 
             if (game.bossMode) {
                 game.hp -= 15; 
@@ -259,12 +295,13 @@ const CRISIS_DB = {
         name: "船艙進水", 
         desc: "每回合 HP -10", 
         roles: ['ENGINEER', 'ANDROID', 'BRAWLER'], // 腓力可以用力氣強行堵住
+        roles: ['ENGINEER', 'ANDROID', 'BRAWLER', 'APPRENTICE'], // 修正：加入 APPRENTICE
         penalty: (game) => { game.hp -= 10; game.log("⚠ 船艙進水！船體持續受損！", "color:var(--alert)"); } 
     },
     'abyss_whisper': { 
         name: "深海幻音", 
         desc: "每回合 SAN -15", 
-        roles: ['MEDIC', 'SINGER'], // 拉扎爾或喬諾娜可以安撫
+        roles: ['MEDIC', 'SINGER', 'DOCTOR'], // 修正：加入 DOCTOR 讓茉莉也能處理
         penalty: (game) => { game.san -= 15; game.log("⚠ 深淵的低語在腦海中迴盪... (SAN下降)", "color:var(--alert)"); } 
     }
 };
@@ -288,6 +325,12 @@ const ITEM_DB = {
             game.renderDash(); 
         } 
     },
+    'fishing_rod': {
+        id: 'fishing_rod', name: '初級釣竿', icon: '🎣',
+        desc: '基礎的釣魚竿，有一定的使用壽命。裝備在背包中即可使用。',
+        type: 'tool',
+        effect: (game) => { game.log("這是一件工具，放在背包裡就能在釣魚時生效。", "color:var(--sonar)"); return false; }
+    },
     'unknown_treasure': {
         id: 'unknown_treasure', name: '未知深海殘骸', icon: '📦',
         desc: '海上無法使用，需帶回小鎮倉庫處理。',
@@ -301,12 +344,13 @@ const ITEM_DB = {
         id: 'fishing_net', name: '捕魚網', icon: '🕸️',
         desc: '出航時可用。撒網捕撈深海魚類 (消耗品)。',
         effect: (game) => {
-            if (!game.isVoyaging) {
+            // 優化：支援在 fishing 模式下使用
+            if (!game.isVoyaging && game.mode !== 'fishing') {
                 game.log("這東西只能在出航時對著大海使用。", "color:var(--alert)");
                 return false;
             }
             
-            let area = game.mission.area;
+            let area = game.mode === 'fishing' ? game.currentFishingZone.name : (game.mission ? game.mission.area : '');
             let fishPool = [];
 
             // 🌟 根據海域決定掉落池
@@ -355,6 +399,27 @@ const ITEM_DB = {
         icon: '<img src="https://file.garden/aWe99vhwaGcNwkok/%E6%B7%B1%E6%B5%B7%E8%BF%B7%E8%88%AA/%E9%81%93%E5%85%B7/%E7%8E%A9%E5%81%B6.png" style="width:1.2em;height:1.2em;vertical-align:middle;">',
         desc: '阿朵菈贈送的玩偶。帶在身上時，似乎能抵擋深淵的惡意 (SAN傷害減半)。',
         effect: (game) => { game.log("這是一個被動道具，放在背包即可生效。", "color:var(--sonar)"); return false; }
+    },
+    // 🌟 新增：黑市道具
+    'lucky_coin': {
+        id: 'lucky_coin', name: '幸運金幣', icon: '🪙',
+        desc: '古老的金幣。持有時，任務獲得的金錢報酬 +20%。',
+        effect: (game) => { game.log("這是一個被動道具。", "color:var(--sonar)"); return false; }
+    },
+    'auto_bot': {
+        id: 'auto_bot', name: '維修機器人', icon: '🤖',
+        desc: '持有時，每回合有 20% 機率自動修復船體 (HP+5)。',
+        effect: (game) => { game.log("這是一個被動道具。", "color:var(--sonar)"); return false; }
+    },
+    'stimulant': {
+        id: 'stimulant', name: '軍用興奮劑', icon: '💉',
+        desc: '消耗品。使全體船員 SAN 值 +30，但船體 HP -15 (副作用)。',
+        effect: (game) => {
+            game.crew.forEach(c => { if(c.id !== 'kleion') c.san = Math.min(c.maxSan, c.san + 30); });
+            game.hp -= 15;
+            game.log("使用了興奮劑！全員精神亢奮！(SAN+30, HP-15)", "color:var(--alert)");
+            return true;
+        }
     },
     // --- 實體道具資料庫 (Item DB) 裡面新增以下內容 ---
     'bait': { 
@@ -654,5 +719,53 @@ const CHAT_DB = {
             msg: '「找一個溫馨的地方，整理筆記本。小瓜（科絲塔）提過，這裡的旅館大廳有一個不錯的暖爐。旅館，溫馨，安全。不錯的地點，我有記。」',
             choices: [{ text: '「去吧，好好休息。」 (結束對話)', next: -1 }]
         }
+    },
+    'nathanael_win': {
+        0: {
+            face: 'nathanael', speaker: '拿但業',
+            msg: '「沒想到你們真的做到了。我原本已經準備好要接收你們的遺產了呢。」<br><br>拿但業優雅地把玩著一把扇子，躺在沙發上說。',
+            choices: [
+                { text: '「你對我們還真有信心。」', next: 1 },
+                { text: '「賭場的生意如何？」', next: 2 }
+            ]
+        },
+        1: {
+            face: 'nathanael', speaker: '拿但業',
+            msg: '「信心？不，我只相信機率。而你們活著回來的機率，在我的計算中趨近於零。不過... 偶爾出現的『黑天鵝』，正是賭博最迷人的地方。」',
+            choices: [{ text: '「承蒙誇獎。」 (結束對話)', next: -1 }]
+        },
+        2: {
+            face: 'nathanael', speaker: '拿但業',
+            msg: '「托你們的福，那些以為世界末日要來而瘋狂揮霍的傻瓜們，現在都欠了我一屁股債。這座小鎮的經濟，很快就會由我說了算。」',
+            choices: [{ text: '「真是個奸商。」 (結束對話)', next: -1 }]
+        }
+    }
+};
+
+// --- 新增：捕魚海域資料庫 ---
+const FISHING_ZONES = {
+    'coast': { 
+        id: 'coast', name: '港口沿岸', dist: 5, timeCost: 1, fuelCost: 5, danger: 0, weather: 'CLEAR',
+        desc: '風平浪靜的安全水域，適合新手練習。',
+        spots: [{name:'防波堤', id:'breakwater'}, {name:'舊碼頭', id:'old_pier'}, {name:'淺水灣', id:'shallow_bay'}],
+        fish: ['fish_sardine', 'fish_sardine', 'trash', 'trash', 'fish_crab']
+    },
+    'shallows': { 
+        id: 'shallows', name: '淺灘區域', dist: 20, timeCost: 2, fuelCost: 15, danger: 10, weather: 'CLEAR',
+        desc: '陽光能穿透的水域，生態豐富但偶有亂流。',
+        spots: [{name:'珊瑚礁', id:'coral'}, {name:'海草林', id:'kelp_forest'}, {name:'白沙地', id:'sandbank'}],
+        fish: ['fish_jellyfish', 'fish_flounder', 'fish_urchin', 'fish_kelp', 'fish_mutant_jellyfish']
+    },
+    'reef': { 
+        id: 'reef', name: '暗礁迷宮', dist: 50, timeCost: 4, fuelCost: 30, danger: 30, weather: 'CLEAR',
+        desc: '地形複雜且鋒利，潛藏著兇猛的掠食者。',
+        spots: [{name:'沈船遺址', id:'wreck'}, {name:'黑岩洞', id:'cave'}, {name:'尖塔石', id:'spire'}],
+        fish: ['fish_moray', 'fish_lionfish', 'fish_octopus', 'fish_mutant_eel', 'fish_mutant_octopus']
+    },
+    'abyss': { 
+        id: 'abyss', name: '深淵邊緣', dist: 100, timeCost: 6, fuelCost: 60, danger: 60, weather: 'CLEAR',
+        desc: '光線無法抵達的黑暗領域，理智將受到考驗。',
+        spots: [{name:'熱液噴口', id:'vent'}, {name:'海溝斷層', id:'trench'}, {name:'虛空之門', id:'void_gate'}],
+        fish: ['fish_angler', 'fish_glass_scale', 'fish_mutant_angler', 'fish_mutant_glass']
     }
 };
