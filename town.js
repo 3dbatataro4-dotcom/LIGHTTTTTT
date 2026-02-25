@@ -627,9 +627,202 @@ Object.assign(window.game, {
         
         // 新增：如果輸光了，被趕出賭場
         if (this.money <= 0) {
-            setTimeout(() => { this.modal("nathanael", "拿但業", "「輸光了嗎？那就滾吧。這裡不歡迎窮光蛋。」"); this.switchMode('town'); }, 1500);
+            setTimeout(() => { this.modal("nathanael", "拿但業", "「輸光了嗎？那就請回吧。這裡不歡迎窮光蛋。」"); this.switchMode('town'); }, 1500);
             return;
         }
+    },
+
+    // --- 新增：深海拉霸機 ---
+    openSlotsUI: function() {
+        this.modal("none", "🎰 深海拉霸機", `
+            <div style="text-align:center;">
+                <div style="font-size:1.2rem; color:#e91e63; margin-bottom:10px; font-weight:bold;">JACKPOT: 1000x</div>
+                <div id="slots-display" style="display:flex; justify-content:center; gap:10px; font-size:3rem; margin:20px 0; background:#000; padding:15px; border:2px solid #e91e63; border-radius:8px; box-shadow: 0 0 15px rgba(233, 30, 99, 0.3);">
+                    <div id="reel-1">❓</div><div id="reel-2">❓</div><div id="reel-3">❓</div>
+                </div>
+                <div style="margin-bottom:20px; color:#aaa; font-size:0.85rem; background:rgba(0,0,0,0.3); padding:10px; border-radius:5px;">
+                    <div>🦑🦑🦑 = 1000x | 💎💎💎 = 200x</div>
+                    <div>🪙🪙🪙 = 50x | 🐟🐟🐟 = 20x</div>
+                    <div style="color:var(--alert)">無保本獎勵，高風險！</div>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:center;">
+                    <button class="tech-btn" style="width:auto; border-color:var(--sonar); color:var(--sonar);" onclick="game.spinSlots(100)">投入 $100</button>
+                    <button class="tech-btn" style="width:auto; border-color:var(--gold); color:var(--gold);" onclick="game.spinSlots(500)">投入 $500</button>
+                </div>
+                <button class="tech-btn" style="margin-top:15px; border-color:#555; color:#aaa;" onclick="game.closeModal()">離開</button>
+            </div>
+        `);
+        setTimeout(() => { let btnContainer = document.getElementById('modal-btn-container'); if(btnContainer) btnContainer.innerHTML = ''; }, 10);
+    },
+    spinSlots: function(bet) {
+        if (this.money < bet) { this.log("資金不足！", "color:var(--alert)"); return; }
+        this.money -= bet;
+        this.addTime(0.1); this.fatigue += 1; // 拉霸機比較快，只消耗 0.1 小時，疲勞 +1
+        this.updateUI();
+        
+        const reels = ['reel-1', 'reel-2', 'reel-3'];
+        const symbols = ['🗑️', '🐟', '🪙', '💎', '🦑'];
+        // 優化：調整機率權重 (極高風險，高回報)
+        // 垃圾(60%), 魚(25%), 金幣(10%), 鑽石(4%), 克拉肯(1%)
+        const getRandomSymbol = () => {
+            let r = Math.random();
+            if (r < 0.60) return '🗑️';
+            if (r < 0.85) return '🐟';
+            if (r < 0.95) return '🪙';
+            if (r < 0.99) return '💎';
+            return '🦑';
+        };
+
+        // 轉動動畫
+        let interval = setInterval(() => {
+            reels.forEach(id => { let el = document.getElementById(id); if(el) el.innerText = symbols[Math.floor(Math.random() * symbols.length)]; });
+        }, 100);
+
+        setTimeout(() => {
+            clearInterval(interval);
+            let results = [getRandomSymbol(), getRandomSymbol(), getRandomSymbol()];
+            reels.forEach((id, i) => { let el = document.getElementById(id); if(el) el.innerText = results[i]; });
+            
+            // 結算
+            let counts = {}; results.forEach(s => counts[s] = (counts[s] || 0) + 1);
+            let winMult = 0;
+            if (counts['🦑'] === 3) winMult = 1000;
+            else if (counts['💎'] === 3) winMult = 200;
+            else if (counts['🪙'] === 3) winMult = 50;
+            else if (counts['🐟'] === 3) winMult = 20;
+            
+            if (winMult > 0) {
+                let winAmount = bet * winMult;
+                this.money += winAmount;
+                this.log(`🎰 拉霸機中獎！獲得 $${winAmount} (x${winMult})`, "color:var(--gold)");
+                let display = document.getElementById('slots-display');
+                if(display) { display.style.borderColor = 'var(--gold)'; display.style.boxShadow = '0 0 20px var(--gold)'; }
+            } else {
+                this.log(`🎰 拉霸機：未中獎...`, "color:#777");
+            }
+            this.updateUI();
+            
+            if (this.money <= 0) { setTimeout(() => { this.modal("nathanael", "拿但業", "「輸光了嗎？那就請回吧。這裡不歡迎窮光蛋。」"); this.switchMode('town'); }, 1500); }
+        }, 1000);
+    },
+
+    // --- 新增：21點 (Blackjack) ---
+    openBlackjackUI: function() {
+        this.modal("nathanael", "拿但業", `
+            <div style="text-align:center;">
+                <div style="margin-bottom:15px; color:#aaa;">「想挑戰我？」</div>
+                <div style="display:flex; gap:10px; justify-content:center;">
+                    <button class="tech-btn" style="width:auto; border-color:var(--sonar); color:var(--sonar);" onclick="game.startBlackjack(100)">賭 $100</button>
+                    <button class="tech-btn" style="width:auto; border-color:var(--gold); color:var(--gold);" onclick="game.startBlackjack(500)">賭 $500</button>
+                    <button class="tech-btn" style="width:auto; border-color:var(--purple); color:var(--purple);" onclick="game.startBlackjack(1000)">賭 $1000</button>
+                </div>
+                <button class="tech-btn" style="margin-top:15px; border-color:#555; color:#aaa;" onclick="game.closeModal()">離開</button>
+            </div>
+        `);
+        setTimeout(() => { let btnContainer = document.getElementById('modal-btn-container'); if(btnContainer) btnContainer.innerHTML = ''; }, 10);
+    },
+    startBlackjack: function(bet) {
+        if (this.money < bet) { this.modal("system", "警告", "資金不足。"); return; }
+        this.money -= bet;
+        this.addTime(0.2); this.fatigue += 3; // 21點消耗 0.2 小時，疲勞 +3
+        this.bjState = { deck: this.createDeck(), playerHand: [], dealerHand: [], bet: bet, gameOver: false };
+        // 發牌
+        this.bjState.playerHand.push(this.drawCard());
+        this.bjState.dealerHand.push(this.drawCard());
+        this.bjState.playerHand.push(this.drawCard());
+        this.bjState.dealerHand.push(this.drawCard());
+        
+        this.updateBlackjackUI();
+        
+        // 檢查天胡 (Natural Blackjack)
+        let pVal = this.getHandValue(this.bjState.playerHand);
+        if (pVal === 21) { this.standBlackjack(); }
+    },
+    createDeck: function() {
+        const suits = ['♠', '♥', '♦', '♣']; const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+        let deck = []; for (let s of suits) { for (let v of values) { deck.push({ suit: s, value: v }); } }
+        return deck.sort(() => Math.random() - 0.5);
+    },
+    drawCard: function() { return this.bjState.deck.pop(); },
+    getHandValue: function(hand) {
+        let val = 0; let aces = 0;
+        for (let card of hand) { if (['J', 'Q', 'K'].includes(card.value)) val += 10; else if (card.value === 'A') { val += 11; aces++; } else val += parseInt(card.value); }
+        while (val > 21 && aces > 0) { val -= 10; aces--; }
+        return val;
+    },
+    updateBlackjackUI: function() {
+        let pHand = this.bjState.playerHand; let dHand = this.bjState.dealerHand; let gameOver = this.bjState.gameOver;
+        let pVal = this.getHandValue(pHand); let dVal = gameOver ? this.getHandValue(dHand) : this.getHandValue([dHand[0]]);
+        
+        let renderCards = (hand, hideSecond) => {
+            return hand.map((c, i) => {
+                if (hideSecond && i === 1) return `<div class="bj-card back" style="display:inline-block; padding:5px 10px; margin:2px; border-radius:4px; background:#333; border:1px solid #555; font-size:1.2rem;">🂠</div>`;
+                let color = (c.suit === '♥' || c.suit === '♦') ? '#ff5252' : '#fff';
+                return `<div class="bj-card" style="color:${color}; border:1px solid ${color}; display:inline-block; padding:5px 10px; margin:2px; border-radius:4px; background:#222; font-family:monospace; font-size:1.2rem;">${c.suit}${c.value}</div>`;
+            }).join('');
+        };
+
+        let html = `
+            <div style="text-align:center;">
+                <div style="margin-bottom:10px; color:#aaa;">拿但業 (莊家)</div>
+                <div style="margin-bottom:20px;">${renderCards(dHand, !gameOver)}</div>
+                <div style="margin-bottom:20px; font-size:1.5rem; font-weight:bold; color:var(--gold);">VS</div>
+                <div style="margin-bottom:10px; color:var(--sonar);">你 (點數: ${pVal})</div>
+                <div style="margin-bottom:20px;">${renderCards(pHand, false)}</div>
+                
+                ${!gameOver ? `
+                    <div style="display:flex; gap:10px; justify-content:center;">
+                        <button class="tech-btn" style="width:auto; border-color:var(--gold); color:var(--gold);" onclick="game.hitBlackjack()">要牌 (HIT)</button>
+                        <button class="tech-btn" style="width:auto; border-color:var(--sonar); color:var(--sonar);" onclick="game.standBlackjack()">停牌 (STAND)</button>
+                    </div>
+                ` : `<div id="bj-result" style="font-size:1.2rem; font-weight:bold; margin-bottom:15px;"></div>`}
+                
+                ${gameOver ? `<button class="tech-btn" style="margin-top:10px; border-color:#555; color:#aaa;" onclick="game.openBlackjackUI()">再來一局</button>` : ''}
+            </div>
+        `;
+        this.modal("none", "🃏 21點決鬥", html);
+        setTimeout(() => { let btnContainer = document.getElementById('modal-btn-container'); if(btnContainer) btnContainer.innerHTML = ''; }, 10);
+    },
+    hitBlackjack: function() {
+        this.bjState.playerHand.push(this.drawCard());
+        let val = this.getHandValue(this.bjState.playerHand);
+        if (val > 21) { this.resolveBlackjack(false, true); } else { this.updateBlackjackUI(); }
+    },
+    standBlackjack: function() {
+        let dVal = this.getHandValue(this.bjState.dealerHand);
+        while (dVal < 17) { this.bjState.dealerHand.push(this.drawCard()); dVal = this.getHandValue(this.bjState.dealerHand); }
+        this.resolveBlackjack(true, false);
+    },
+    resolveBlackjack: function(stand, bust) {
+        this.bjState.gameOver = true; this.updateBlackjackUI();
+        let pVal = this.getHandValue(this.bjState.playerHand); let dVal = this.getHandValue(this.bjState.dealerHand);
+        let bet = this.bjState.bet; let resultDiv = document.getElementById('bj-result'); let msg = ""; let winAmount = 0;
+
+        if (bust) {
+            msg = `<span style="color:var(--alert)">爆牌！你輸了...</span>`; this.log(`🃏 21點：爆牌輸掉了 $${bet}`, "color:#777");
+        } else if (dVal > 21) {
+            winAmount = bet * 2; msg = `<span style="color:var(--gold)">莊家爆牌！你贏了 $${winAmount}！</span>`;
+            this.money += winAmount; this.log(`🃏 21點：莊家爆牌，贏得 $${winAmount}`, "color:var(--gold)");
+        } else if (pVal > dVal) {
+            let isBJ = (pVal === 21 && this.bjState.playerHand.length === 2);
+            winAmount = isBJ ? Math.floor(bet * 2.5) : bet * 2;
+            msg = `<span style="color:var(--gold)">${isBJ ? 'BLACKJACK!' : '勝利！'} 你贏了 $${winAmount}！</span>`;
+            this.money += winAmount; this.log(`🃏 21點：${isBJ ? 'BJ' : ''}勝利，贏得 $${winAmount}`, "color:var(--gold)");
+            
+            // 勝利特殊對話
+            setTimeout(() => {
+                let quote = isBJ ? "「21點...？哼，算你厲害。不過別以為下次還能這麼好運。」" : "「嘖... 居然贏了？看來你的運氣稍微比你的出身好一點。」";
+                this.modal("nathanael", "拿但業", quote + `<br><br>${msg}`);
+                setTimeout(() => { let btnContainer = document.getElementById('modal-btn-container'); if(btnContainer) btnContainer.innerHTML = `<button class="tech-btn" style="width:100%; border-color:#555; color:#aaa;" onclick="game.openBlackjackUI()">再來一局</button><button class="tech-btn" style="width:100%; border-color:#555; color:#aaa; margin-top:10px;" onclick="game.closeModal()">離開</button>`; }, 10);
+            }, 1000);
+            return;
+        } else if (pVal === dVal) {
+            this.money += bet; msg = `<span style="color:#aaa">平局 (退還賭注)</span>`; this.log(`🃏 21點：平局`, "color:#aaa");
+        } else {
+            msg = `<span style="color:var(--alert)">你輸了...</span>`; this.log(`🃏 21點：輸掉了 $${bet}`, "color:#777");
+        }
+        if (resultDiv) resultDiv.innerHTML = msg; this.updateUI();
+        if (this.money <= 0) { setTimeout(() => { this.modal("nathanael", "拿但業", "「輸光了嗎？那就滾吧。這裡不歡迎窮光蛋。」"); this.switchMode('town'); }, 2000); }
     },
 
     // --- 新增：海神祭壇 ---
