@@ -83,15 +83,15 @@ Object.assign(window.game, {
         document.getElementById('port-layer').style.display = 'flex';
         this.playMusic(BGM_PORT);
         if (this.crew.length === 0) this.init(); // 確保有船員資料
-        this.day = 10; this.money = 9999; 
+        this.day = 11; this.money = 9999; 
         this.fuel = 300; this.maxFuel = 300;
         this.food = 300; this.maxFood = 300;
         this.hp = 100; this.san = 100;
         this.crewMax = 8;
-        this.flags.victory = false;
+        this.flags.victory = true;
         this.upgrades = { light: true, armor: true, torpedo: true, submarine: true };
-        document.body.classList.remove('theme-sunny');
-        this.modal("system", "DEBUG MODE", "已啟動 BOSS 戰測試模式。<br>天數：DAY 10 (決戰日)<br>狀態：設施全滿，資金充足<br>請前往公會接取【深淵中心】任務。");
+        document.body.classList.add('theme-sunny');
+        this.modal("system", "DEBUG MODE", "已啟動通關後模式。<br>天數：DAY 11 (勝利)<br>狀態：已擊敗克拉肯<br>現在可以體驗通關後的對話與功能。");
         if(this.refreshMissions) this.refreshMissions(); 
         if(this.updateUI) this.updateUI();
         if(this.switchMode) this.switchMode('town');
@@ -130,6 +130,44 @@ Object.assign(window.game, {
             console.error(e);
             this.modal("system", "系統錯誤", "存檔數據損壞。");
         }
+    },
+    
+    // --- 新增：繼承碼系統 ---
+    exportSave: function() {
+        const data = {
+            money: this.money, fuel: this.fuel, food: this.food,
+            fatigue: this.fatigue, day: this.day, hour: this.hour,
+            crew: this.crew, upgrades: this.upgrades,
+            inventory: this.inventory, warehouse: this.warehouse,
+            codex: this.codex, missions: this.missions,
+            mission: this.mission, flags: this.flags,
+            maxFuel: this.maxFuel, maxFood: this.maxFood, crewMax: this.crewMax,
+            hp: this.hp, san: this.san
+        };
+        try {
+            const json = JSON.stringify(data);
+            // 使用 UTF-8 安全的方式進行 Base64 編碼
+            const encoded = btoa(unescape(encodeURIComponent(json)));
+            this.modal("system", "導出繼承碼", `
+                <div>請複製下方的代碼，並妥善保存：</div>
+                <textarea style="width:100%; height:100px; background:#111; color:#0f0; border:1px solid #333; margin-top:10px; font-size:0.8rem; word-break: break-all;">${encoded}</textarea>
+                <div style="color:#aaa; font-size:0.8rem; margin-top:5px;">(全選複製即可)</div>
+            `);
+        } catch (e) { console.error(e); this.modal("system", "錯誤", "導出失敗。"); }
+    },
+    importSave: function() {
+        this.modal("system", "導入繼承碼", `<div>請貼上繼承碼：</div><textarea id="import-area" style="width:100%; height:100px; background:#111; color:#0f0; border:1px solid #333; margin-top:10px; font-size:0.8rem;"></textarea><button class="tech-btn" style="margin-top:10px; border-color:var(--gold); color:var(--gold);" onclick="game.confirmImport()">確認導入</button>`);
+        setTimeout(() => { let btn = document.getElementById('modal-default-btn'); if(btn) btn.remove(); }, 10);
+    },
+    confirmImport: function() {
+        const area = document.getElementById('import-area'); if(!area) return;
+        const str = area.value.trim(); if(!str) return;
+        try {
+            const json = decodeURIComponent(escape(atob(str)));
+            const data = JSON.parse(json);
+            if (data.money === undefined || data.day === undefined) throw new Error("Invalid save data");
+            Object.assign(this, data); this.saveGame(false); this.closeModal(); this.modal("system", "系統", "載入成功！正在重啟系統..."); setTimeout(() => location.reload(), 1500);
+        } catch(e) { console.error(e); this.modal("system", "錯誤", "繼承碼無效或損壞。"); }
     },
 
     // --- 基礎工具 ---
