@@ -9,7 +9,7 @@ Object.assign(window.game, {
     distTotal: 0, distLeft: 0, ap: 2, hp: 100, san: 100,
     bossMode: false, bossHp: 0,
     flags: { adoraDone: false, godBuff: null }, activeCrises: [], inventory: [], warehouse: [], inventoryMax: 5, warehouseMax: 25,
-    codex: [], currentAudio: null, weather: 'CLEAR',
+    codex: [], currentAudio: null, weather: 'CLEAR', housing: { owned: false, furniture: [], gallery: [null, null, null] },
 
     // --- 系統初始化 ---
     init: function() {
@@ -83,7 +83,7 @@ Object.assign(window.game, {
         document.getElementById('port-layer').style.display = 'flex';
         this.playMusic(BGM_PORT);
         if (this.crew.length === 0) this.init(); // 確保有船員資料
-        this.day = 11; this.money = 9999; 
+        this.day = 11; this.money = 99999999; 
         this.fuel = 300; this.maxFuel = 300;
         this.food = 300; this.maxFood = 300;
         this.hp = 100; this.san = 100;
@@ -106,7 +106,7 @@ Object.assign(window.game, {
             inventory: this.inventory, warehouse: this.warehouse,
             codex: this.codex, missions: this.missions,
             mission: this.mission, flags: this.flags,
-            maxFuel: this.maxFuel, maxFood: this.maxFood, crewMax: this.crewMax,
+            maxFuel: this.maxFuel, maxFood: this.maxFood, crewMax: this.crewMax, housing: this.housing,
             hp: this.hp, san: this.san
         };
         localStorage.setItem('noema_save', JSON.stringify(data));
@@ -141,7 +141,7 @@ Object.assign(window.game, {
             inventory: this.inventory, warehouse: this.warehouse,
             codex: this.codex, missions: this.missions,
             mission: this.mission, flags: this.flags,
-            maxFuel: this.maxFuel, maxFood: this.maxFood, crewMax: this.crewMax,
+            maxFuel: this.maxFuel, maxFood: this.maxFood, crewMax: this.crewMax, housing: this.housing,
             hp: this.hp, san: this.san
         };
         try {
