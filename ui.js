@@ -350,7 +350,7 @@ Object.assign(window.game, {
             let baitText = `<span style="color:var(--gold)">${baitWh}</span> (倉) + <span style="color:var(--purple)">${baitInv}</span> (包)`;
 
             html = backBtn + `<h2 style="color:var(--sonar); border-bottom:1px solid var(--sonar); padding-bottom:10px;">⚓ 廢棄港口區</h2>
-                <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
                     <div class="tech-card" style="border-color:var(--sonar);"><div class="card-header"><span class="card-title">原地釣魚</span><span style="font-size:0.8rem; color:#aaa;">港口沿岸</span></div><div class="card-body">在相對安全的港口消磨時間。漁獲普通，但至少不會遇到海怪。<br><div style="margin-top:10px; font-size:0.8rem; color:#777;">需要：釣竿(背包)、魚餌(倉庫)</div>${rodDurText}</div><button id="fish-btn" class="tech-btn" style="border-color:var(--sonar); color:var(--sonar);" onclick="game.startFishing()">拋出釣線</button></div>
                     <div class="tech-card" style="border-color:var(--gold);"><div class="card-header"><span class="card-title">出航捕魚</span><span style="font-size:0.8rem; color:#aaa;">近海探索</span></div><div class="card-body">駕駛船隻前往附近的漁場。風險與回報並存，請確保物資充足。<br><div style="margin-top:10px; font-size:0.8rem; color:#777;">需要：釣竿(背包)、燃料、食物</div></div><button class="tech-btn" style="border-color:var(--gold); color:var(--gold);" onclick="game.openFishingSelect()">選擇海域</button></div>
                 </div>
@@ -387,7 +387,7 @@ Object.assign(window.game, {
             let bjBtn = this.money > 0 ? `<button class="tech-btn" style="border-color:var(--purple); color:var(--purple); margin-top:10px; width:100%;" onclick="game.openBlackjackUI()">挑戰莊家</button>` : `<button class="tech-btn" style="border-color:#555; color:#777; margin-top:10px; width:100%; cursor:not-allowed;" disabled>沒錢</button>`;
 
             html = backBtn + this.npcHtml('nathanael') + chatBtn + `<h3 style="color:var(--gold); margin-top:0; border-bottom:1px dashed #333; padding-bottom:10px;">🎰 貴賓廳</h3>
-            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
                 <div class="tech-card" style="border-color:var(--gold);"><div class="card-header"><span class="card-title">🎲 水手骰子</span></div><div class="card-body">簡單的比大小。<br><span style="font-size:0.8rem; color:#aaa;">勝率 50% | 賠率 2x</span></div>${gambleBtn}</div>
                 <div class="tech-card" style="border-color:#e91e63;"><div class="card-header"><span class="card-title">🎰 深海拉霸</span></div><div class="card-body">高風險高回報。<br><span style="font-size:0.8rem; color:#aaa;">最高賠率 1000x</span></div>${slotsBtn}</div>
                 <div class="tech-card" style="border-color:var(--purple); grid-column: 1 / -1;">
@@ -455,16 +455,79 @@ Object.assign(window.game, {
                 </div>
             </div>`;
         } else if (tabId === 'residence') {
-            html = backBtn + `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#777;">
-                <div style="font-size:5rem; margin-bottom:20px; opacity:0.5;">🏚️</div>
-                <h2 style="color:#555; margin:0 0 10px 0;">廢棄的住所</h2>
-                <p>這棟建築看起來荒廢已久，但結構依然完好。</p>
-                <p>門上掛著一個牌子：<span style="color:var(--alert)">【暫不開放】</span></p>
-                <div style="margin-top:30px; font-size:0.8rem; border:1px dashed #333; padding:10px; background:rgba(0,0,0,0.2);">
-                    即將推出：玩家房屋系統<br>
-                    (可花費高額資金購買並裝修)
-                </div>
-            </div>`;
+            // 確保資料結構存在 (相容舊存檔)
+            this.housing = this.housing || { owned: false, furniture: [] };
+            // 確保 gallery 結構存在
+            if (!this.housing.gallery) this.housing.gallery = [null, null, null];
+            
+            if (!this.housing.owned) {
+                html = backBtn + `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#777; text-align:center;">
+                    <div style="font-size:5rem; margin-bottom:20px; color:#555;">🏚️</div>
+                    <h2 style="color:#aaa; margin:0 0 10px 0;">廢棄的豪宅</h2>
+                    <p>這棟曾經屬於某位傳奇船長的豪宅現在空無一人。<br>雖然佈滿灰塵，但地基依然堅固。</p>
+                    <div style="margin-top:20px; padding:20px; border:1px solid #333; background:rgba(0,0,0,0.5); border-radius:8px;">
+                        <div style="color:var(--gold); font-size:1.5rem; margin-bottom:10px;">售價: $30,000</div>
+                        <button class="tech-btn" style="border-color:var(--gold); color:var(--gold); width:200px;" onclick="game.buyHouse()">💰 購買產權</button>
+                    </div>
+                </div>`;
+            } else {
+                let f = this.housing.furniture;
+                const has = (id) => f.includes(id);
+
+                // 家具定義 (漲價版)
+                const catalog = [
+                    { id: 'bed', name: '奢華大床', price: 5000, icon: '🛏️', desc: '全恢復 (免費)', action: 'game.sleepHome()' },
+                    { id: 'kitchen', name: '自動廚房', price: 3000, icon: '🍳', desc: '魚轉食物 (1:15)', action: 'game.cookFood()' },
+                    { id: 'radio', name: '訊號接收器', price: 2000, icon: '📻', desc: '未知情報 (SAN)', action: 'game.listenRadio()' },
+                    { id: 'shelf', name: '收藏展示架', price: 1500, icon: '🏆', desc: '展示稀有漁獲', action: "game.openGalleryUI()" }
+                ];
+                
+                // 建構 Blueprint UI
+                let roomHtml = '';
+                catalog.forEach(item => {
+                    if (has(item.id)) {
+                        // 已購買 (實線)
+                        roomHtml += `
+                        <div onclick="${item.action}" style="border:2px solid var(--sonar); background:rgba(0,230,118,0.05); padding:15px; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; transition:0.2s;">
+                            <div style="font-size:2.5rem; margin-bottom:5px;">${item.icon}</div>
+                            <div style="color:var(--sonar); font-weight:bold;">${item.name}</div>
+                            <div style="font-size:0.75rem; color:#aaa; margin-top:2px;">${item.desc}</div>
+                        </div>`;
+                    } else {
+                        // 未購買 (虛線)
+                        roomHtml += `
+                        <div onclick="game.buyFurniture('${item.id}', ${item.price})" style="border:1px dashed #555; background:rgba(0,0,0,0.2); padding:15px; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; opacity:0.7;">
+                            <div style="font-size:2.5rem; margin-bottom:5px; filter:grayscale(1);">${item.icon}</div>
+                            <div style="color:#777;">[空位]</div>
+                            <div style="color:var(--gold); font-size:0.9rem; margin-top:2px;">$${item.price}</div>
+                        </div>`;
+                    }
+                });
+
+                html = backBtn + `<div style="display:flex; flex-direction:column; height:100%;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--sonar); padding-bottom:10px; margin-bottom:15px;">
+                        <h2 style="color:var(--gold); margin:0;">🏡 溫暖的家</h2>
+                        <div style="font-size:0.8rem; color:#aaa;">BLUEPRINT MODE</div>
+                    </div>
+                    
+                    <!-- 房屋藍圖區域 -->
+                    <div style="flex:1; min-height:350px; position:relative; padding:20px; border:2px solid var(--sonar); border-radius:4px; background:radial-gradient(circle at center, #1a2a3a 0%, #000 100%); overflow-y:auto;">
+                        
+                        <!-- 裝飾用網格背景 -->
+                        <div style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; opacity:0.1; background-image: linear-gradient(var(--sonar) 1px, transparent 1px), linear-gradient(90deg, var(--sonar) 1px, transparent 1px); background-size: 20px 20px;"></div>
+                        
+                        <!-- 裝飾用標線 -->
+                        <div style="position:absolute; top:10px; left:10px; color:var(--sonar); font-size:0.7rem; opacity:0.5;">SECTOR-7 RESIDENCE UNIT</div>
+                        <div style="position:absolute; bottom:10px; right:10px; color:var(--sonar); font-size:0.7rem; opacity:0.5;">INTERIOR LAYOUT</div>
+
+                        <!-- 家具 Grid -->
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap:20px; height:100%; position:relative; z-index:2;">
+                            ${roomHtml}
+                        </div>
+                    </div>
+                    <div style="margin-top:10px; text-align:center; color:#555; font-size:0.8rem;">點擊虛線框購買家具，點擊實線框使用功能</div>
+                </div>`;
+            }
         }
         content.innerHTML = html;
         this.updateUI(); // 修正：切換分頁後立即更新 UI，確保天氣特效能偵測到離開地圖而停止
