@@ -204,16 +204,16 @@ Object.assign(window.game, {
             return;
         }
 
-        let html = `<div class="grid">`;
+        let html = `<div style="max-height:60vh; overflow-y:auto; padding:5px;"><div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:15px;">`;
         Object.values(FISHING_ZONES).forEach(z => {
             let fuelReq = z.fuelCost * 2; // 來回預估
             let canGo = this.fuel >= fuelReq && this.food >= z.timeCost * 2;
             let btnStyle = canGo ? 'border-color:var(--sonar); color:var(--sonar);' : 'border-color:#555; color:#777; cursor:not-allowed;';
             let action = canGo ? `game.launchFishing('${z.id}')` : '';
             let weather = WEATHER_TYPES[z.weather] || {icon:'?', name:'未知'};
-            html += `<div class="tech-card" style="${btnStyle}">
+            html += `<div class="tech-card" style="${btnStyle} display:flex; flex-direction:column; height:100%;">
                 <div class="card-header"><span class="card-title">${z.name}</span><span style="font-size:0.9rem;">${weather.icon} ${weather.name}</span></div>
-                <div class="card-body">
+                <div class="card-body" style="flex:1;">
                     <div>${z.desc}</div>
                     <div style="margin-top:10px; font-size:0.85rem; border-top:1px dashed #333; padding-top:5px;">
                         <div>危險指數: <span style="color:var(--alert)">${z.danger}%</span></div>
@@ -224,7 +224,7 @@ Object.assign(window.game, {
                 <button class="tech-btn" style="margin-top:10px; ${btnStyle}" onclick="${action}" ${canGo?'':'disabled'}>${canGo ? '出航捕魚' : '物資不足'}</button>
             </div>`;
         });
-        html += `</div>`;
+        html += `</div></div>`;
         this.modal("none", "選擇捕魚海域", html);
     },
 
