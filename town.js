@@ -296,6 +296,12 @@ Object.assign(window.game, {
         // 🌟 判定隨機危險事件
         if (this.triggerFishingEvent()) return;
 
+        // 預先決定這條魚是什麼 (用於計算小遊戲難度)
+        let pool = this.currentFishingZone.fish;
+        if (this.currentFishingZone.weather === 'RAIN') pool = [...pool, ...pool.filter(f => f !== 'trash')];
+        else if (this.currentFishingZone.weather === 'STORM') pool = [...pool, 'trash', 'trash'];
+        this.flags.hookedFishId = pool[Math.floor(Math.random() * pool.length)];
+
         // 互動式釣魚 UI (Modal)
         this.modal("none", `🎣 ${spotId} 垂釣中...`, 
             `<div style="text-align:center; padding:20px;">
@@ -309,37 +315,94 @@ Object.assign(window.game, {
 
         let waitTime = 2000 + Math.random() * 2500;
         if (this.flags.fishingTimer) clearTimeout(this.flags.fishingTimer);
-        if (this.flags.fishingFailTimer) clearTimeout(this.flags.fishingFailTimer);
 
         this.flags.fishingTimer = setTimeout(() => {
             const btn = document.getElementById('exp-fish-btn');
-            const msg = document.getElementById('exp-fish-msg');
-            const icon = document.getElementById('exp-fish-icon');
-
             if (!btn) { this.flags.isBiting = false; return; }
-
-            if(msg) { msg.innerText = "❗ 浮標沉下去了！快拉！"; msg.style.color = "var(--alert)"; msg.style.fontWeight = "bold"; }
-            if(icon) { icon.innerText = "❗"; icon.style.animation = "blink 0.2s infinite"; }
             
-            btn.disabled = false; btn.style.borderColor = "var(--alert)"; btn.style.color = "var(--alert)"; btn.innerText = "💥 猛力收線！";
-            this.flags.isBiting = true;
-
-            this.flags.fishingFailTimer = setTimeout(() => {
-                if (this.flags.isBiting && document.getElementById('exp-fish-btn')) {
-                    this.flags.isBiting = false; this.flags.rodDurability--;
-                    this.addTime(1); this.fatigue += 5;
-                    this.log("魚跑掉了... (疲勞+5, 耐久-1)", "color:#777");
-                    this.closeModal(); this.updateUI();
-                }
-            }, 1000);
-
-            btn.onclick = () => {
-                if (this.flags.isBiting) {
-                    this.flags.isBiting = false; if(this.flags.fishingFailTimer) clearTimeout(this.flags.fishingFailTimer);
-                    this.handleFishingSuccess(spotId);
-                }
-            };
+            // 進入連點小遊戲
+            this.startFishingMiniGame(spotId, btn);
         }, waitTime);
+    },
+
+    // --- 新增：連點收線小遊戲 ---
+    startFishingMiniGame: function(spotId, btn) {
+        this.flags.isBiting = true;
+        this.flags.reelProgress = 25; // 起始進度 25%
+        
+        // 計算難度 (根據預先決定的魚價值)
+        let fish = ITEM_DB[this.flags.hookedFishId] || { value: 10 };
+        // 難度公式: 基礎衰退 0.8 + (魚價/300)。 例如: 垃圾(1)=0.8, 沙丁魚(75)=1.0, 稀有(300)=1.8, 傳說(800)=3.4
+        let decayRate = 0.8 + (fish.value / 300);
+        
+        // 更新 UI
+        const msg = document.getElementById('exp-fish-msg');
+        const icon = document.getElementById('exp-fish-icon');
+        if(msg) msg.innerHTML = `❗ 魚上鉤了！<br><span style="color:var(--gold); font-size:0.9rem;">快速連點按鈕來收線！</span>`;
+        if(icon) { icon.innerText = "🎣"; icon.style.animation = "shake 0.5s infinite"; } // 增加震動動畫 class (css需支援或忽略)
+        
+        // 插入進度條
+        let barHtml = `<div style="width:100%; background:#222; height:12px; margin-top:10px; border-radius:6px; border:1px solid #555; overflow:hidden; position:relative;">
+            <div id="reel-bar" style="width:25%; height:100%; background:linear-gradient(90deg, var(--alert), var(--gold)); transition:width 0.05s linear;"></div>
+        </div>`;
+        if(msg) msg.innerHTML += barHtml;
+
+        btn.disabled = false;
+        btn.innerText = "💥 連點收線！(TAP!)";
+        btn.style.borderColor = "var(--gold)";
+        btn.style.color = "var(--gold)";
+        
+        // 綁定點擊事件
+        btn.onclick = () => {
+            if(!this.flags.isBiting) return;
+            this.flags.reelProgress += 10; // 每次點擊增加 10% 進度
+            if(navigator.vibrate) navigator.vibrate(20); // 手機震動反饋
+            this.renderReelBar();
+            if(this.flags.reelProgress >= 100) this.endFishingMiniGame(true, spotId);
+        };
+
+        // 開始遊戲迴圈 (處理進度衰退)
+        if(this.flags.fishingInterval) clearInterval(this.flags.fishingInterval);
+        this.flags.fishingInterval = setInterval(() => {
+            if(!this.flags.isBiting) { clearInterval(this.flags.fishingInterval); return; }
+            
+            this.flags.reelProgress -= decayRate;
+            this.renderReelBar();
+
+            if(this.flags.reelProgress <= 0) {
+                this.endFishingMiniGame(false, spotId);
+            }
+        }, 50); // 每 50ms 更新一次 (20 FPS)
+    },
+
+    renderReelBar: function() {
+        const bar = document.getElementById('reel-bar');
+        if(bar) bar.style.width = Math.max(0, Math.min(100, this.flags.reelProgress)) + '%';
+    },
+
+    endFishingMiniGame: function(success, spotId) {
+        clearInterval(this.flags.fishingInterval);
+        this.flags.isBiting = false;
+        const icon = document.getElementById('exp-fish-icon');
+        if(icon) icon.style.animation = "none";
+
+        if(success) {
+            // 成功：呼叫原本的成功處理函式 (傳入預先決定的魚 ID)
+            this.handleFishingSuccess(spotId, this.flags.hookedFishId);
+        } else {
+            // 失敗
+            this.flags.rodDurability--;
+            this.addTime(1); 
+            this.fatigue += 5;
+            
+            const msg = document.getElementById('exp-fish-msg');
+            const btnContainer = document.getElementById('modal-btn-container');
+            
+            if(msg) msg.innerHTML = `<span style="color:#777">魚掙脫了... 你的力氣不夠。</span>`;
+            if(btnContainer) btnContainer.innerHTML = `<button class="tech-btn" style="width:100%; border-color:#555; color:#aaa;" onclick="game.closeModal(); game.updateUI();">離開</button>`;
+            
+            this.log("收線失敗，魚跑掉了... (疲勞+5, 耐久-1)", "color:#777");
+        }
     },
 
     useNetAtSpot: function(spotId) {
@@ -388,7 +451,7 @@ Object.assign(window.game, {
         this.updateUI(); this.renderFishingDash(); this.checkFishingFail();
     },
 
-    handleFishingSuccess: function(spotId) {
+    handleFishingSuccess: function(spotId, fixedFishId = null) {
         this.flags.rodDurability--;
         if (this.flags.rodDurability <= 0) { this.log("你的釣竿斷裂了！", "color:var(--alert)"); let rodIdx = this.inventory.indexOf('fishing_rod'); if (rodIdx > -1) this.inventory.splice(rodIdx, 1); }
 
@@ -396,11 +459,14 @@ Object.assign(window.game, {
         this.fatigue += (5 + Math.floor(this.currentFishingZone.danger / 5));
         this.food -= 2;
 
-        let pool = this.currentFishingZone.fish;
-        if (this.currentFishingZone.weather === 'RAIN') pool = [...pool, ...pool.filter(f => f !== 'trash')];
-        else if (this.currentFishingZone.weather === 'STORM') pool = [...pool, 'trash', 'trash'];
-
-        let catchId = pool[Math.floor(Math.random() * pool.length)];
+        // 如果有指定魚(來自小遊戲)，則使用該魚；否則(來自其他邏輯)隨機抽取
+        let catchId = fixedFishId;
+        if (!catchId) {
+            let pool = this.currentFishingZone.fish;
+            if (this.currentFishingZone.weather === 'RAIN') pool = [...pool, ...pool.filter(f => f !== 'trash')];
+            else if (this.currentFishingZone.weather === 'STORM') pool = [...pool, 'trash', 'trash'];
+            catchId = pool[Math.floor(Math.random() * pool.length)];
+        }
         
         let f = ITEM_DB[catchId];
         if (this.inventory.length < this.inventoryMax) {
@@ -933,12 +999,12 @@ Object.assign(window.game, {
 
     // --- 新增：非法強化 (船員) ---
     openIllegalEnhanceUI: function() {
-        let html = `<div class="grid">`;
+        let html = `<div style="max-height:60vh; overflow-y:auto; padding:5px;"><div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:15px;">`;
         this.crew.forEach(c => {
             if (c.id === 'kleion') return; // 幽靈不需要訓練 SAN
-            html += `<div class="tech-card"><div class="card-header"><span class="card-title">${c.name}</span><span style="color:var(--sonar)">SAN: ${c.maxSan}</span></div><div class="card-body">注射深淵提取物 (Max SAN +10)</div><button class="tech-btn" style="border-color:var(--purple); color:var(--purple);" onclick="game.enhanceCrew('${c.id}')">強化 ($2500)</button></div>`;
+            html += `<div class="tech-card" style="display:flex; flex-direction:column;"><div class="card-header"><span class="card-title">${c.name}</span><span style="color:var(--sonar)">SAN: ${c.maxSan}</span></div><div class="card-body" style="flex:1;">注射深淵提取物 (Max SAN +10)</div><button class="tech-btn" style="border-color:var(--purple); color:var(--purple); margin-top:10px;" onclick="game.enhanceCrew('${c.id}')">強化 ($2500)</button></div>`;
         });
-        html += `</div>`;
+        html += `</div></div>`;
         this.modal("molly", "茉莉", "「這可是違禁藥品... 但如果你們想在深淵裡保持清醒，這是最快的方法。」<br>" + html);
         setTimeout(() => { let btnContainer = document.getElementById('modal-btn-container'); if(btnContainer) btnContainer.innerHTML = `<button class="tech-btn" style="width:100%; border-color:#555; color:#aaa;" onclick="game.closeModal()">離開</button>`; }, 10);
     },
@@ -948,5 +1014,135 @@ Object.assign(window.game, {
         this.money -= 2500; c.maxSan += 10; c.san += 10;
         this.log(`💉 ${c.name} 接受了非法強化！Max SAN 提升至 ${c.maxSan}。`, "color:var(--purple)");
         this.updateUI(); this.openIllegalEnhanceUI();
+    },
+
+    // --- 新增：住所邏輯 ---
+    buyHouse: function() {
+        if (this.money >= 30000) {
+            this.money -= 30000;
+            this.housing.owned = true;
+            this.log("💰 購買了廢棄豪宅！已獲得產權。", "color:var(--gold)");
+            this.modal("peter", "彼得", "「你真的把那棟鬼屋買下來了？好吧，至少那裡的地基很穩。恭喜你有個家了。」");
+            this.openTab('residence');
+            this.updateUI();
+        } else { this.modal("system", "資金不足", "你需要 $30,000 才能購買這棟房產。"); }
+    },
+    buyFurniture: function(id, price) {
+        if (this.money >= price) {
+            this.money -= price;
+            this.housing.furniture.push(id);
+            this.log(`💰 購買了家具。`, "color:var(--sonar)");
+            this.openTab('residence');
+            this.updateUI();
+        } else { this.modal("system", "資金不足", "錢不夠買這個家具。"); }
+    },
+    sleepHome: function() {
+        this.addTime(8);
+        this.fatigue = 0;
+        // 住所休息效果更好，甚至能修復一點船體 (因為有心情保養)
+        this.hp = Math.min(100, this.hp + 20); 
+        this.crew.forEach(c => { c.san = c.maxSan; });
+        this.log("🛏️ 在家裡睡了個好覺。狀態全滿！", "color:var(--gold)");
+        this.modal("none", "休息", "沒有海浪聲，沒有魚腥味。<br>這是久違的安穩睡眠。<br><br><span style='color:var(--sonar)'>全體 SAN 回復 / 疲勞歸零 / HP +20</span>");
+        this.updateUI();
+    },
+    cookFood: function() {
+        let fishes = [...this.inventory, ...this.warehouse].filter(id => ITEM_DB[id] && ITEM_DB[id].type === 'fish');
+        if (fishes.length === 0) { this.modal("system", "提示", "你沒有魚可以煮。"); return; }
+        // 隨機煮一條，或者優先煮背包裡的
+        let fishId = fishes[0];
+        let loc = this.inventory.includes(fishId) ? this.inventory : this.warehouse;
+        loc.splice(loc.indexOf(fishId), 1);
+        
+        this.food = Math.min(this.maxFood, this.food + 15);
+        this.log(`🍳 將 ${ITEM_DB[fishId].name} 煮成了美味的魚湯。(Food +15)`, "color:#e91e63");
+        this.updateUI();
+        this.openTab('residence');
+    },
+    listenRadio: function() {
+        this.addTime(0.5);
+        let msgs = [ "沙沙... 第八星區的... 貿易航線... 沙沙...", "滋... 警告... 深淵潮汐... 正在消退...", "這裡是用戶... 請問有人... 聽到嗎...", "播放著一首輕快的爵士樂，讓你感到放鬆。(SAN +5)" ];
+        let m = msgs[Math.floor(Math.random()*msgs.length)];
+        if (m.includes("放鬆")) this.healAllSan(5);
+        this.modal("none", "📻 收音機", m);
+        this.updateUI();
+    },
+
+    // --- 新增：展示架 (Gallery) 邏輯 ---
+    openGalleryUI: function() {
+        // 1. 建立畫框區域 (The Wall)
+        let galleryHtml = `<div style="background:rgba(0,0,0,0.3); padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #333;">
+            <div style="text-align:center; color:var(--gold); margin-bottom:10px; font-size:0.9rem;">🏆 戰利品展示牆</div>
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px;">`;
+        
+        this.housing.gallery.forEach((itemId, idx) => {
+            if (itemId) {
+                let item = ITEM_DB[itemId];
+                // 已展示：顯示圖示，點擊取下
+                galleryHtml += `<div onclick="game.removeFromGallery(${idx})" style="aspect-ratio:1/1; border:2px solid var(--gold); background:rgba(255,215,0,0.1); display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; position:relative; border-radius:4px;">
+                    <div style="font-size:2rem; margin-bottom:5px;">${item.icon}</div>
+                    <div style="font-size:0.7rem; color:#aaa; text-align:center; line-height:1.1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:90%;">${item.name}</div>
+                    <div style="position:absolute; top:2px; right:2px; color:var(--alert); font-size:0.8rem;">✕</div>
+                </div>`;
+            } else {
+                // 空位：顯示虛線，提示點擊下方選擇
+                galleryHtml += `<div style="aspect-ratio:1/1; border:2px dashed #555; display:flex; align-items:center; justify-content:center; color:#555; font-size:0.8rem; border-radius:4px;">
+                    空展示位
+                </div>`;
+            }
+        });
+        galleryHtml += `</div></div>`;
+
+        // 2. 建立倉庫選擇區域 (Selector)
+        let warehouseFish = this.warehouse.filter(id => ITEM_DB[id] && ITEM_DB[id].type === 'fish');
+        // 去除重複，方便顯示 (或者顯示全部讓玩家選) -> 這裡顯示全部實體比較直觀，因為每條魚都是獨立的
+        let selectorHtml = `<div style="flex:1; overflow-y:auto; border-top:1px dashed #333; padding-top:10px;">
+            <div style="color:var(--sonar); font-size:0.9rem; margin-bottom:10px;">📦 倉庫內的漁獲 (點擊上架)</div>
+            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap:8px;">`;
+            
+        if (warehouseFish.length === 0) {
+            selectorHtml += `<div style="grid-column:1/-1; text-align:center; color:#555; padding:20px;">倉庫裡沒有魚。<br>去釣幾條大魚回來吧！</div>`;
+        } else {
+            warehouseFish.forEach((itemId) => {
+                let item = ITEM_DB[itemId];
+                selectorHtml += `<div onclick="game.addToGallery('${itemId}')" style="aspect-ratio:1/1; border:1px solid #444; background:#111; display:flex; align-items:center; justify-content:center; font-size:1.5rem; cursor:pointer; border-radius:4px;">${item.icon}</div>`;
+            });
+        }
+        selectorHtml += `</div></div>`;
+
+        this.modal("none", "收藏展示架", `<div style="display:flex; flex-direction:column; height:50vh;">${galleryHtml}${selectorHtml}</div>`);
+        setTimeout(() => { let btnContainer = document.getElementById('modal-btn-container'); if(btnContainer) btnContainer.innerHTML = `<button class="tech-btn" style="width:100%; border-color:#555; color:#aaa;" onclick="game.closeModal()">關閉</button>`; }, 10);
+    },
+
+    addToGallery: function(itemId) {
+        // 找第一個空位
+        let emptyIdx = this.housing.gallery.indexOf(null);
+        if (emptyIdx === -1) { this.modal("system", "提示", "展示架已經滿了。<br>請先點擊畫框取下舊的戰利品。"); return; }
+        
+        // 從倉庫移除，放入展示架
+        let whIdx = this.warehouse.indexOf(itemId);
+        if (whIdx > -1) {
+            this.warehouse.splice(whIdx, 1);
+            this.housing.gallery[emptyIdx] = itemId;
+            this.log(`🏆 將 ${ITEM_DB[itemId].name} 放上了展示架。`, "color:var(--gold)");
+            this.openGalleryUI(); // 刷新介面
+            this.updateUI();
+        }
+    },
+
+    removeFromGallery: function(slotIdx) {
+        let itemId = this.housing.gallery[slotIdx];
+        if (!itemId) return;
+
+        if (this.warehouse.length >= this.warehouseMax) {
+            this.modal("system", "警告", "倉庫已滿，無法取下展示品。");
+            return;
+        }
+
+        this.housing.gallery[slotIdx] = null;
+        this.warehouse.push(itemId);
+        this.log(`📦 將 ${ITEM_DB[itemId].name} 取下並放回倉庫。`, "color:#aaa");
+        this.openGalleryUI(); // 刷新介面
+        this.updateUI();
     }
 });
